@@ -3,6 +3,8 @@ import json
 import random
 from datetime import date
 
+import jdatetime
+from jdatetime import date as jdate
 from dateutil.relativedelta import relativedelta
 
 try:
@@ -13,8 +15,6 @@ except ImportError:
     TELETHON_INSTALLED = False
 
 from telegram_bot_calendar.static import MONTHS, DAYS_OF_WEEK
-
-calendar.setfirstweekday(calendar.MONDAY)
 
 CB_CALENDAR = "cbcal"
 
@@ -56,13 +56,20 @@ class TelegramCalendar:
         :param view: The type of the calendar: either detailed, w/month, or w/year
         """
 
-        if current_date is None: current_date = date.today()
-        if min_date is None: min_date = date(1, 1, 1)
-        if max_date is None: max_date = date(2999, 12, 31)
+        self.locale = locale
+        self.jdate = locale == 'fa'
+
+        if self.jdate:
+            if current_date is None: current_date = jdate.today()
+            if min_date is None: min_date = jdate(1, 1, 1)
+            if max_date is None: max_date = jdate(1499, 12, 29)
+        else:
+            if current_date is None: current_date = date.today()
+            if min_date is None: min_date = date(1, 1, 1)
+            if max_date is None: max_date = date(2999, 12, 31)
 
         self.calendar_id = calendar_id
         self.current_date = current_date
-        self.locale = locale
 
         self.min_date = min_date
         self.max_date = max_date
@@ -166,7 +173,12 @@ class TelegramCalendar:
         empty_after = 0
 
         for i in range(diff):
-            n_date = start + relativedelta(**{lstep: i})
+            if self.jdate:
+                n_date_gregorian = start.togregorian() + relativedelta(**{lstep: i})
+                n_date = jdate.fromgregorian(date=n_date_gregorian)
+            else:
+                n_date = start + relativedelta(**{lstep: i})
+
             if self.min_date > max_date(n_date, step):
                 empty_before += 1
             elif self.max_date < min_date(n_date, step):
@@ -192,6 +204,20 @@ def max_date(d, step):
     :param d datetime
     :param step current step
     """
+    if isinstance(d, jdate):
+        if step == YEAR:
+            days = 29
+            if jdate(d.year, 1, 1).isleap():
+                days = 30
+            return d.replace(month=12, day=days)
+        elif step == MONTH:
+            days = jdatetime.j_days_in_month[d.month-1]
+            if d.month == 12 and d.isleap():
+                days += 1
+            return d.replace(day=days)
+        else:
+            return d
+
     if step == YEAR:
         return d.replace(month=12, day=31)
     elif step == MONTH:

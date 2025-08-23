@@ -1,6 +1,7 @@
 from calendar import monthrange
 
 from telegram_bot_calendar.base import *
+from telegram_bot_calendar.base import jdate
 
 STEPS = {YEAR: MONTH, MONTH: DAY}
 
@@ -42,7 +43,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
         year = int(params['year'])
         month = int(params['month'])
         day = int(params['day'])
-        self.current_date = date(year, month, day)
+
+        if self.jdate:
+            self.current_date = jdate(year, month, day)
+        else:
+            self.current_date = date(year, month, day)
 
         if params['action'] == GOTO:
             self._build(step=step)
@@ -58,7 +63,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
     def _build_years(self, *args, **kwargs):
         years_num = self.size_year * self.size_year_column
 
-        start = self.current_date - relativedelta(years=(years_num - 1) // 2)
+        if self.jdate:
+            gregorian_date = self.current_date.togregorian()
+            start_gregorian = gregorian_date - relativedelta(years=(years_num - 1) // 2)
+            start = jdate.fromgregorian(date=start_gregorian)
+        else:
+            start = self.current_date - relativedelta(years=(years_num - 1) // 2)
         years = self._get_period(YEAR, start, years_num)
         years_buttons = rows(
             [
@@ -69,26 +79,29 @@ class DetailedTelegramCalendar(TelegramCalendar):
             self.size_year
         )
 
+        if self.jdate:
+            maxd_gregorian = start.togregorian() + relativedelta(years=years_num - 1)
+            maxd = min_date(jdate.fromgregorian(date=maxd_gregorian), YEAR)
+        else:
+            maxd = min_date(start + relativedelta(years=years_num - 1), YEAR)
+
         nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
                                               mind=max_date(start, YEAR),
-                                              maxd=min_date(start + relativedelta(years=years_num - 1), YEAR))
+                                              maxd=maxd)
 
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
 
     def _build_months(self, *args, **kwargs):
-        start = self.current_date.replace(month=1)
-        months = self._get_period(MONTH, self.current_date.replace(month=1), 12)
-        months_buttons = rows(
-            [
-                self._build_button(
-                    self.months[self.locale][d.month - 1] if d else self.empty_month_button,  # button text
-                    SELECT if d else NOTHING,  # action
-                    MONTH, d, is_random=self.is_random  # other parameters
-                )
-                for d in months
-            ],
-            self.size_month)
+        months_buttons = []
+        for i in range(1, 13):
+            d = self.current_date.replace(month=i, day=1)
+            if self._valid_date(d):
+                months_buttons.append(self._build_button(self.months[self.locale][i-1], SELECT, MONTH, d, is_random=self.is_random))
+            else:
+                months_buttons.append(self._build_button(self.empty_month_button, NOTHING))
 
+        months_buttons = rows(months_buttons, self.size_month)
+        start = self.current_date.replace(month=1)
         nav_buttons = self._build_nav_buttons(MONTH, diff=relativedelta(months=12),
                                               mind=max_date(start, MONTH),
                                               maxd=min_date(start.replace(month=12), MONTH))
@@ -96,7 +109,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         self._keyboard = self._build_keyboard(months_buttons + nav_buttons)
 
     def _build_days(self, *args, **kwargs):
-        days_num = monthrange(self.current_date.year, self.current_date.month)[1]
+        if self.jdate:
+            days_num = jdatetime.j_days_in_month[self.current_date.month-1]
+            if self.current_date.month == 12 and self.current_date.isleap():
+                days_num += 1
+        else:
+            days_num = monthrange(self.current_date.year, self.current_date.month)[1]
 
         start = self.current_date.replace(day=1)
         days = self._get_period(DAY, start, days_num)
@@ -116,9 +134,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # mind and maxd are swapped since we need maximum and minimum days in the month
         # without swapping next page can generated incorrectly
+        if self.jdate:
+            mind_gregorian = start.togregorian() + relativedelta(days=days_num - 1)
+            mind = min_date(jdate.fromgregorian(date=mind_gregorian), MONTH)
+        else:
+            mind = min_date(start + relativedelta(days=days_num - 1), MONTH)
+
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               maxd=max_date(start, MONTH),
-                                              mind=min_date(start + relativedelta(days=days_num - 1), MONTH))
+                                              mind=mind)
 
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
 
@@ -126,14 +150,25 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         text = self.nav_buttons[step]
 
-        sld = list(map(str, self.current_date.timetuple()[:3]))
+        if self.jdate:
+            sld = [str(self.current_date.year), str(self.current_date.month), str(self.current_date.day)]
+        else:
+            sld = list(map(str, self.current_date.timetuple()[:3]))
         data = [sld[0], self.months[self.locale][int(sld[1]) - 1], sld[2]]
         data = dict(zip(["year", "month", "day"], data))
-        prev_page = self.current_date - diff
-        next_page = self.current_date + diff
+        if self.jdate:
+            gregorian_date = self.current_date.togregorian()
+            prev_page = jdate.fromgregorian(date=gregorian_date - diff)
+            next_page = jdate.fromgregorian(date=gregorian_date + diff)
 
-        prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
-        next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
+            prev_exists = (mind.togregorian() - relativedelta(**{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
+            next_exists = (maxd.togregorian() + relativedelta(**{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
+        else:
+            prev_page = self.current_date - diff
+            next_page = self.current_date + diff
+
+            prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
+            next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
 
         return [[
             self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
@@ -149,12 +184,32 @@ class DetailedTelegramCalendar(TelegramCalendar):
             return super(DetailedTelegramCalendar, self)._get_period(step, start, diff, *args, **kwargs)
 
         dates = []
-        cl = calendar.monthcalendar(start.year, start.month)
-        for week in cl:
-            for day in week:
-                if day != 0 and self._valid_date(date(start.year, start.month, day)):
-                    dates.append(date(start.year, start.month, day))
+        if self.jdate:
+            days_in_month = jdatetime.j_days_in_month[start.month-1]
+            if start.month == 12 and start.isleap():
+                days_in_month += 1
+            first_day_weekday = jdate(start.year, start.month, 1, locale=jdatetime.FA_LOCALE).weekday()
+            # jdatetime: Saturday is 0, Sunday is 1, ...
+
+            for i in range(first_day_weekday):
+                dates.append(None)
+            for day in range(1, days_in_month + 1):
+                d = jdate(start.year, start.month, day)
+                if self._valid_date(d):
+                    dates.append(d)
                 else:
                     dates.append(None)
+        else:
+            cl = calendar.monthcalendar(start.year, start.month)
+            for week in cl:
+                for day in week:
+                    if day != 0:
+                        d = date(start.year, start.month, day)
+                        if self._valid_date(d):
+                            dates.append(d)
+                        else:
+                            dates.append(None)
+                    else:
+                        dates.append(None)
 
         return dates
