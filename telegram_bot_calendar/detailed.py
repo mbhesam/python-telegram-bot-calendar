@@ -157,16 +157,16 @@ class DetailedTelegramCalendar(TelegramCalendar):
         text = self.nav_buttons[step]
 
         # Ensure current_date is correct type
-        if self.jdate and isinstance(self.current_date, datetime.date):
+        if self.jdate and isinstance(self.current_date, date) and not isinstance(self.current_date, jdate):
             self.current_date = jdate.fromgregorian(date=self.current_date)
 
         # Prepare labels
         if self.jdate:
             sld = [str(self.current_date.year), str(self.current_date.month), str(self.current_date.day)]
-            month_name = self.months['fa'][int(sld[1]) - 1]
+            month_name = self.months['fa'][self.current_date.month - 1]
         else:
             sld = list(map(str, self.current_date.timetuple()[:3]))
-            month_name = self.months[self.locale][int(sld[1]) - 1]
+            month_name = self.months[self.locale][self.current_date.month - 1]
 
         data = dict(zip(["year", "month", "day"], [sld[0], month_name, sld[2]]))
 
@@ -187,10 +187,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
             prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
             next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
 
+        # Build nav buttons: pass date/jdate objects directly
         return [[
             self._build_button(
                 text[0].format(**data) if prev_exists else self.empty_nav_button,
-                GOTO if prev_exists else NOTHING, step, prev_page.isoformat(), is_random=self.is_random
+                GOTO if prev_exists else NOTHING, step, prev_page, is_random=self.is_random
             ),
             self._build_button(
                 text[1].format(**data),
