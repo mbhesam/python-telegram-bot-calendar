@@ -63,16 +63,17 @@ class TelegramCalendar:
             if current_date is None: current_date = jdate.today()
             if min_date is None: min_date = jdate(1, 1, 1)
             if max_date is None: max_date = jdate(1499, 12, 29)
+            self.min_date = jdatetime.date.fromgregorian(date=min_date)
+            self.max_date = jdatetime.date.fromgregorian(date=max_date)
         else:
             if current_date is None: current_date = date.today()
             if min_date is None: min_date = date(1, 1, 1)
             if max_date is None: max_date = date(2999, 12, 31)
+            self.min_date = min_date
+            self.max_date = max_date
 
         self.calendar_id = calendar_id
         self.current_date = current_date
-
-        self.min_date = min_date
-        self.max_date = max_date
 
         self.telethon = telethon
         if self.telethon and not TELETHON_INSTALLED:
