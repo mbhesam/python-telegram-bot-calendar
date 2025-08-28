@@ -178,8 +178,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
             prev_page = jdate.fromgregorian(date=gregorian_date - diff)
             next_page = jdate.fromgregorian(date=gregorian_date + diff)
 
-            prev_exists = (mind.togregorian() - relativedelta(**{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
-            next_exists = (maxd.togregorian() + relativedelta(**{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
+            prev_exists = (mind.togregorian() - relativedelta(
+                **{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
+            next_exists = (maxd.togregorian() + relativedelta(
+                **{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
         else:
             prev_page = self.current_date - diff
             next_page = self.current_date + diff
