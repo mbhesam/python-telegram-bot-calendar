@@ -164,42 +164,89 @@ class DetailedTelegramCalendar(TelegramCalendar):
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
 
     def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
-
         text = self.nav_buttons[step]
 
+        # Prepare year/month/day for button labels
         if self.jdate:
             sld = [str(self.current_date.year), str(self.current_date.month), str(self.current_date.day)]
+            # Use Jalali month names
+            month_name = self.months['fa'][int(sld[1]) - 1]
         else:
             sld = list(map(str, self.current_date.timetuple()[:3]))
-        data = [sld[0], self.months[self.locale][int(sld[1]) - 1], sld[2]]
-        data = dict(zip(["year", "month", "day"], data))
+            month_name = self.months[self.locale][int(sld[1]) - 1]
+
+        data = dict(zip(["year", "month", "day"], [sld[0], month_name, sld[2]]))
+
         if self.jdate:
-            print(type(self.current_date))
+            # Shift dates in Gregorian and convert back to Jalali
             gregorian_date = self.current_date.togregorian()
-            print(type(gregorian_date))
             prev_page = jdate.fromgregorian(date=gregorian_date - diff)
             next_page = jdate.fromgregorian(date=gregorian_date + diff)
+            curr_page = self.current_date  # keep current as jdate
 
-            prev_exists = (mind.togregorian() - relativedelta(
-                **{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
-            next_exists = (maxd.togregorian() + relativedelta(
-                **{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
+            prev_exists = (mind.togregorian() - relativedelta(**{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
+            next_exists = (maxd.togregorian() + relativedelta(**{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
         else:
-            print(type(self.current_date))
             prev_page = self.current_date - diff
             next_page = self.current_date + diff
+            curr_page = self.current_date
 
             prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
             next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
 
+        # Build nav buttons
         return [[
-            self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
-                               GOTO if prev_exists else NOTHING, step, prev_page, is_random=self.is_random),
-            self._build_button(text[1].format(**data),
-                               PREV_ACTIONS[step], PREV_STEPS[step], self.current_date, is_random=self.is_random),
-            self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
-                               GOTO if next_exists else NOTHING, step, next_page, is_random=self.is_random),
+            self._build_button(
+                text[0].format(**data) if prev_exists else self.empty_nav_button,
+                GOTO if prev_exists else NOTHING, step, prev_page, is_random=self.is_random
+            ),
+            self._build_button(
+                text[1].format(**data),
+                PREV_ACTIONS[step], PREV_STEPS[step], curr_page, is_random=self.is_random
+            ),
+            self._build_button(
+                text[2].format(**data) if next_exists else self.empty_nav_button,
+                GOTO if next_exists else NOTHING, step, next_page, is_random=self.is_random
+            ),
         ]]
+
+    # def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
+    #
+    #     text = self.nav_buttons[step]
+    #
+    #     if self.jdate:
+    #         sld = [str(self.current_date.year), str(self.current_date.month), str(self.current_date.day)]
+    #     else:
+    #         sld = list(map(str, self.current_date.timetuple()[:3]))
+    #     data = [sld[0], self.months[self.locale][int(sld[1]) - 1], sld[2]]
+    #     data = dict(zip(["year", "month", "day"], data))
+    #     if self.jdate:
+    #         print(type(self.current_date))
+    #         gregorian_date = self.current_date.togregorian()
+    #         print(type(gregorian_date))
+    #         prev_page = jdate.fromgregorian(date=gregorian_date - diff)
+    #         next_page = jdate.fromgregorian(date=gregorian_date + diff)
+    #
+    #         prev_exists = (mind.togregorian() - relativedelta(
+    #             **{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
+    #         next_exists = (maxd.togregorian() + relativedelta(
+    #             **{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
+    #     else:
+    #         print(type(self.current_date))
+    #         prev_page = self.current_date - diff
+    #         next_page = self.current_date + diff
+    #
+    #         prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
+    #         next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
+    #
+    #     return [[
+    #         self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
+    #                            GOTO if prev_exists else NOTHING, step, prev_page, is_random=self.is_random),
+    #         self._build_button(text[1].format(**data),
+    #                            PREV_ACTIONS[step], PREV_STEPS[step], self.current_date, is_random=self.is_random),
+    #         self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
+    #                            GOTO if next_exists else NOTHING, step, next_page, is_random=self.is_random),
+    #     ]]
 
     def _get_period(self, step, start, diff, *args, **kwargs):
         if step != DAY:
