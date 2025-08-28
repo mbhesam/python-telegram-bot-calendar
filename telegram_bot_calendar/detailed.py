@@ -106,6 +106,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 maxd=maxd
             )
 
+        self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
+
     def _build_months(self, *args, **kwargs):
         months_buttons = []
         for i in range(1, 13):
