@@ -174,7 +174,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
         data = [sld[0], self.months[self.locale][int(sld[1]) - 1], sld[2]]
         data = dict(zip(["year", "month", "day"], data))
         if self.jdate:
+            print(type(self.current_date))
             gregorian_date = self.current_date.togregorian()
+            print(type(gregorian_date))
             prev_page = jdate.fromgregorian(date=gregorian_date - diff)
             next_page = jdate.fromgregorian(date=gregorian_date + diff)
 
@@ -183,6 +185,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             next_exists = (maxd.togregorian() + relativedelta(
                 **{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
         else:
+            print(type(self.current_date))
             prev_page = self.current_date - diff
             next_page = self.current_date + diff
 
