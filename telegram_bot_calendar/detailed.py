@@ -44,10 +44,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         month = int(params['month'])
         day = int(params['day'])
 
+        # Convert payload to correct type
         if self.jdate:
+            # ensure it stays Jalali
             self.current_date = jdate(year, month, day)
         else:
-            self.current_date = date(year, month, day)
+            self.current_date = datetime.date(year, month, day)
 
         if params['action'] == GOTO:
             self._build(step=step)
@@ -188,7 +190,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         return [[
             self._build_button(
                 text[0].format(**data) if prev_exists else self.empty_nav_button,
-                GOTO if prev_exists else NOTHING, step, prev_page, is_random=self.is_random
+                GOTO if prev_exists else NOTHING, step, prev_page.isoformat(), is_random=self.is_random
             ),
             self._build_button(
                 text[1].format(**data),
