@@ -82,14 +82,19 @@ class DetailedTelegramCalendar(TelegramCalendar):
         if self.jdate:
             maxd_gregorian = start.togregorian() + relativedelta(years=years_num - 1)
             maxd = min_date(jdate.fromgregorian(date=maxd_gregorian), YEAR)
+            nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
+                                                  mind=max_date(start, YEAR),
+                                                  maxd=maxd)
+
+            self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
         else:
             maxd = min_date(start + relativedelta(years=years_num - 1), YEAR)
+            nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
+                                                  mind=max_date(start, YEAR),
+                                                  maxd=maxd)
 
-        nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
-                                              mind=max_date(start, YEAR),
-                                              maxd=maxd)
+            self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
 
-        self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
 
     def _build_months(self, *args, **kwargs):
         months_buttons = []
