@@ -63,19 +63,21 @@ class DetailedTelegramCalendar(TelegramCalendar):
     def _build_years(self, *args, **kwargs):
         years_num = self.size_year * self.size_year_column
 
+        # Ensure current_date is correct type
+        if self.jdate and isinstance(self.current_date, datetime.date):
+            self.current_date = jdate.fromgregorian(date=self.current_date)
+
         if self.jdate:
             gregorian_date = self.current_date.togregorian()
             start_gregorian = gregorian_date - relativedelta(years=(years_num - 1) // 2)
             start = jdate.fromgregorian(date=start_gregorian)
         else:
             start = self.current_date - relativedelta(years=(years_num - 1) // 2)
+
         years = self._get_period(YEAR, start, years_num)
         years_buttons = rows(
-            [
-                self._build_button(d.year if d else self.empty_year_button, SELECT if d else NOTHING, YEAR, d,
-                                   is_random=self.is_random)
-                for d in years
-            ],
+            [self._build_button(d.year if d else self.empty_year_button, SELECT if d else NOTHING, YEAR, d,
+                                is_random=self.is_random) for d in years],
             self.size_year
         )
 
@@ -85,26 +87,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         else:
             maxd = min_date(start + relativedelta(years=years_num - 1), YEAR)
 
-        if self.jdate:
-            def jalali_shift(date_obj, years):
-                g_date = date_obj.togregorian()
-                g_new = g_date + relativedelta(years=years)
-                return jdatetime.date.fromgregorian(date=g_new)
-
-            # instead of giving diff=relativedelta(...)
-            nav_buttons = self._build_nav_buttons(
-                YEAR,
-                diff=relativedelta(years=years_num), # function-based shift
-                mind=max_date(start, YEAR),
-                maxd=maxd
-            )
-        else:
-            nav_buttons = self._build_nav_buttons(
-                YEAR,
-                diff=relativedelta(years=years_num),
-                mind=max_date(start, YEAR),
-                maxd=maxd
-            )
+        nav_buttons = self._build_nav_buttons(
+            YEAR,
+            diff=relativedelta(years=years_num),
+            mind=max_date(start, YEAR),
+            maxd=maxd
+        )
 
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
 
@@ -166,10 +154,13 @@ class DetailedTelegramCalendar(TelegramCalendar):
     def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
         text = self.nav_buttons[step]
 
-        # Prepare year/month/day for button labels
+        # Ensure current_date is correct type
+        if self.jdate and isinstance(self.current_date, datetime.date):
+            self.current_date = jdate.fromgregorian(date=self.current_date)
+
+        # Prepare labels
         if self.jdate:
             sld = [str(self.current_date.year), str(self.current_date.month), str(self.current_date.day)]
-            # Use Jalali month names
             month_name = self.months['fa'][int(sld[1]) - 1]
         else:
             sld = list(map(str, self.current_date.timetuple()[:3]))
@@ -177,12 +168,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         data = dict(zip(["year", "month", "day"], [sld[0], month_name, sld[2]]))
 
+        # Compute prev/next pages
         if self.jdate:
-            # Shift dates in Gregorian and convert back to Jalali
             gregorian_date = self.current_date.togregorian()
             prev_page = jdate.fromgregorian(date=gregorian_date - diff)
             next_page = jdate.fromgregorian(date=gregorian_date + diff)
-            curr_page = self.current_date  # keep current as jdate
+            curr_page = self.current_date
 
             prev_exists = (mind.togregorian() - relativedelta(**{LSTEP[step] + "s": 1})) >= self.min_date.togregorian()
             next_exists = (maxd.togregorian() + relativedelta(**{LSTEP[step] + "s": 1})) <= self.max_date.togregorian()
@@ -194,7 +185,6 @@ class DetailedTelegramCalendar(TelegramCalendar):
             prev_exists = mind - relativedelta(**{LSTEP[step] + "s": 1}) >= self.min_date
             next_exists = maxd + relativedelta(**{LSTEP[step] + "s": 1}) <= self.max_date
 
-        # Build nav buttons
         return [[
             self._build_button(
                 text[0].format(**data) if prev_exists else self.empty_nav_button,
