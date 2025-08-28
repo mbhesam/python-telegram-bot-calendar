@@ -94,7 +94,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             # instead of giving diff=relativedelta(...)
             nav_buttons = self._build_nav_buttons(
                 YEAR,
-                diff=lambda d: jalali_shift(d, years_num),  # function-based shift
+                diff=relativedelta(years=years_num), # function-based shift
                 mind=max_date(start, YEAR),
                 maxd=maxd
             )
