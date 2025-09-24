@@ -64,7 +64,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
         years_num = self.size_year * self.size_year_column
         half_range = (years_num - 1) // 2
 
-        start = self.current_date + relativedelta(years=-half_range)
+        # Handle Jalali dates properly
+        if self.jdate:
+            # Convert Jalali to Gregorian for date calculations
+            gregorian_current = self.current_date.togregorian()
+            start_gregorian = gregorian_current + relativedelta(years=-half_range)
+            start = jdate.fromgregorian(date=start_gregorian)
+        else:
+            start = self.current_date + relativedelta(years=-half_range)
+
         years = self._get_period(YEAR, start, years_num)
 
         years_buttons = rows(
@@ -73,7 +81,13 @@ class DetailedTelegramCalendar(TelegramCalendar):
             self.size_year
         )
 
-        maxd = max_date(start + relativedelta(years=years_num - 1), YEAR)
+        # Calculate maxd properly for Jalali dates
+        if self.jdate:
+            maxd_gregorian = start_gregorian + relativedelta(years=years_num - 1)
+            maxd = jdate.fromgregorian(date=maxd_gregorian)
+        else:
+            maxd = start + relativedelta(years=years_num - 1)
+
         nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
                                               mind=min_date(start, YEAR), maxd=maxd)
 
@@ -141,19 +155,33 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Prev / Next pages
         if self.jdate:
-            curr_page = self.current_date
-            prev_page = self.current_date + relativedelta(**{LSTEP[step] + "s": -diff.years if step==YEAR else -diff.months if step==MONTH else -diff.days})
-            next_page = self.current_date + relativedelta(**{LSTEP[step] + "s": diff.years if step==YEAR else diff.months if step==MONTH else diff.days})
+            # For Jalali dates, convert to Gregorian for relativedelta operations
+            gregorian_current = self.current_date.togregorian()
 
-            prev_exists = (mind <= prev_page)
-            next_exists = (next_page <= maxd)
+            if step == YEAR:
+                prev_page_gregorian = gregorian_current - relativedelta(years=diff.years)
+                next_page_gregorian = gregorian_current + relativedelta(years=diff.years)
+            elif step == MONTH:
+                prev_page_gregorian = gregorian_current - relativedelta(months=diff.months)
+                next_page_gregorian = gregorian_current + relativedelta(months=diff.months)
+            else:  # DAY
+                prev_page_gregorian = gregorian_current - relativedelta(days=diff.days)
+                next_page_gregorian = gregorian_current + relativedelta(days=diff.days)
+
+            # Convert back to Jalali
+            prev_page = jdate.fromgregorian(date=prev_page_gregorian)
+            next_page = jdate.fromgregorian(date=next_page_gregorian)
+            curr_page = self.current_date
+
+            prev_exists = (prev_page >= self.min_date) if self.min_date else True
+            next_exists = (next_page <= self.max_date) if self.max_date else True
         else:
             curr_page = self.current_date
             prev_page = self.current_date - diff
             next_page = self.current_date + diff
 
-            prev_exists = (mind <= prev_page)
-            next_exists = (next_page <= maxd)
+            prev_exists = (prev_page >= self.min_date) if self.min_date else True
+            next_exists = (next_page <= self.max_date) if self.max_date else True
 
         return [[
             self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
