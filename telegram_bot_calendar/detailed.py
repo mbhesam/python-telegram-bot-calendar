@@ -17,7 +17,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
                  min_date=None, max_date=None, telethon=False, use_jdate=False, **kwargs):
-        self.use_jdate = use_jdate  # Rename to avoid conflict with jdate module
+        #self.use_jdate = use_jdate  # Rename to avoid conflict with jdate module
         print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
 
         # Set a proper default date
