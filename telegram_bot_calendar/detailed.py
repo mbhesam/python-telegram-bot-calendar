@@ -42,7 +42,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
 
     def _build_years(self):
-        print(f"\n📅 BUILD YEARS START: jdate={self.use_jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD YEARS START: use_jdate{self.use_jdate}, current_date={self.current_date}")
 
         years_num = self.size_year * self.size_year_column
         half_range = (years_num - 1) // 2
@@ -81,10 +81,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
                                               mind=min_date(start, YEAR), maxd=maxd)
 
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
-        print(f"✅ BUILD YEARS COMPLETE: jdate={self.use_jdate}\n")
+        print(f"✅ BUILD YEARS COMPLETE: use_jdate{self.use_jdate}\n")
 
     def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
-        print(f"🔄 BUILD NAV BUTTONS: step={step}, jdate={self.use_jdate}, current_date={self.current_date}")
+        print(f"🔄 BUILD NAV BUTTONS: step={step}, use_jdate{self.use_jdate}, current_date={self.current_date}")
 
         text = self.nav_buttons[step]
         print(f"📝 Button text: {text}")
@@ -154,7 +154,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
         """Build individual calendar button with debug info"""
         print(
-            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', jdate={self.use_jdate}")
+            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate{self.use_jdate}")
 
         if action == NOTHING:
             print(f"   ↳ NOTHING button - text: {text}")
@@ -190,7 +190,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         return {"text": text, "callback_data": callback_data}
 
     def _process(self, call_data):
-        print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', jdate={self.use_jdate}")
+        print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', use_jdate{self.use_jdate}")
         print(f"📅 BEFORE PROCESS: current_date={self.current_date}, type={type(self.current_date)}")
 
         params = call_data.split("_")
@@ -211,6 +211,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             return None, None, None
 
         step = params['step']
+        self.use_jdate = bool(int(params['use_jdate']))
         try:
             year = int(params['year'])
             month = int(params['month'])
@@ -261,7 +262,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 return self.current_date, None, step
 
     def _build(self, step=None):
-        print(f"\n🏗️ BUILD CALLED: step={step}, jdate={self.use_jdate}")
+        print(f"\n🏗️ BUILD CALLED: step={step}, use_jdate={self.use_jdate}")
         if not step:
             step = self.first_step
         self.step = step
@@ -279,7 +280,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print(f"❌ UNKNOWN STEP: {step}")
 
     def _build_months(self):
-        print(f"\n📅 BUILD MONTHS: jdate={self.use_jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD MONTHS: use_jdate={self.use_jdate}, current_date={self.current_date}")
 
         months_buttons = []
         for i in range(1, 13):
@@ -314,7 +315,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ BUILD MONTHS COMPLETE\n")
 
     def _build_days(self):
-        print(f"\n📅 BUILD DAYS: jdate={self.use_jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD DAYS: use_use_jdate={self.use_jdate}, current_date={self.current_date}")
 
         if self.use_jdate:
             days_num = jdatetime.j_days_in_month[self.current_date.month - 1]
@@ -353,7 +354,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
     def _get_period(self, step, start, count):
         """Override _get_period to handle Jalali dates correctly"""
-        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, jdate={self.use_jdate}")
+        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, use_jdate={self.use_jdate}")
 
         result = []
         for i in range(count):
