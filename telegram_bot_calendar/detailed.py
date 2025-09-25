@@ -15,8 +15,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
-                 min_date=None, max_date=None, telethon=False, jdate=False, **kwargs):
-        self.use_jdate = jdate
+                 min_date=None, max_date=None, telethon=False, use_jdate=False, **kwargs):
+        self.use_jdate = use_jdate
         print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
 
         # Set a proper default date
@@ -296,11 +296,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         months_buttons = []
         for i in range(1, 13):
-            # Create the date object correctly for Jalali
+            # Create the date correctly for the calendar type
             if self.use_jdate:
-                d = jdatetime.date(self.current_date.year, i, 1)  # FIXED: use jdatetime.date instead of jdate
+                d = jdatetime.date(self.current_date.year, i, 1)  # Use jdatetime for Jalali
             else:
-                d = date(self.current_date.year, i, 1)
+                d = date(self.current_date.year, i, 1)  # Use datetime for Gregorian
 
             if self._valid_date(d):
                 month_name = self.months['fa'][i - 1] if self.use_jdate else self.months[self.locale][i - 1]
@@ -314,8 +314,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Create start date correctly
         if self.use_jdate:
-            start = jdatetime.date(self.current_date.year, 1, 1)  # FIXED: use jdatetime.date instead of jdate
-            maxd = jdatetime.date(self.current_date.year, 12, 1)  # FIXED: use jdatetime.date instead of jdate
+            start = jdatetime.date(self.current_date.year, 1, 1)
+            maxd = jdatetime.date(self.current_date.year, 12, 1)
         else:
             start = date(self.current_date.year, 1, 1)
             maxd = date(self.current_date.year, 12, 1)
