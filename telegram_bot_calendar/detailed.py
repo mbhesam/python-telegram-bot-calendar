@@ -193,12 +193,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"   ↳ Final date_obj: {date_obj} (type: {type(date_obj)})")
 
-        # Build the callback data WITH CALENDAR TYPE
-        calendar_type = 'j' if self.use_jdate else 'g'  # Add this line
+        # ADD CALENDAR TYPE TO CALLBACK DATA
+        calendar_type = 'j' if self.use_jdate else 'g'
+
+        # Build the callback data with calendar type
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
-            calendar_type,  # ← ADD THIS: 'j' for Jalali, 'g' for Gregorian
+            calendar_type,  # ← ADD THIS LINE: 'j' for Jalali, 'g' for Gregorian
             action,
             step if step else "",
             str(date_obj.year),
@@ -216,7 +218,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         params = call_data.split("_")
         print(f"📋 Raw params: {params}")
 
-        # Updated expected params with calendar type
+        # UPDATE EXPECTED PARAMS TO INCLUDE CALENDAR TYPE
         expected_params = ["start", "calendar_id", "calendar_type", "action", "step", "year", "month", "day"]
 
         if len(params) < len(expected_params):
@@ -227,9 +229,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📋 Parsed params: {params}")
 
         # SET CALENDAR TYPE FROM CALLBACK DATA
-        calendar_type = params.get('calendar_type', 'g')  # Default to Gregorian if missing
+        calendar_type = params.get('calendar_type', 'g')
         self.use_jdate = (calendar_type == 'j')
-        print(f"🔄 SET CALENDAR TYPE FROM CALLBACK: {calendar_type} -> use_jdate={self.use_jdate}")
+        print(f"🔄 SET CALENDAR TYPE: {calendar_type} -> use_jdate={self.use_jdate}")
 
         if params['action'] == NOTHING:
             print("❌ ACTION: NOTHING - returning None")
