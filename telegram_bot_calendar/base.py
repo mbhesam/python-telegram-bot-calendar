@@ -175,7 +175,7 @@ class TelegramCalendar:
         for i in range(diff):
             if self.use_jdate:
                 n_date_gregorian = start.togregorian() + relativedelta(**{lstep: i})
-                n_date = jdate.fromgregorian(date=n_date_gregorian)
+                n_date = jdatetime.date.fromgregorian(date=n_date_gregorian)
             else:
                 n_date = start + relativedelta(**{lstep: i})
 
@@ -204,10 +204,10 @@ def max_date(d, step):
     :param d datetime
     :param step current step
     """
-    if isinstance(d, jdate):
+    if isinstance(d, jdatetime.date):
         if step == YEAR:
             days = 29
-            if jdate(d.year, 1, 1).isleap():
+            if jdatetime.date(d.year, 1, 1).isleap():
                 days = 30
             return d.replace(month=12, day=days)
         elif step == MONTH:

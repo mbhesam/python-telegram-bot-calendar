@@ -376,7 +376,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
                     current = date(year, month, 1)
             else:  # DAY
                 if self.use_jdate:
-                    current = start + relativedelta(days=i)
+                    cur_tmp = start.togregorian() + relativedelta(days=i)
+                    current = jdatetime.date.fromgregorian(date=cur_tmp)
                 else:
                     current = start + relativedelta(days=i)
 
