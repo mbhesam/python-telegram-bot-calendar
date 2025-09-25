@@ -57,9 +57,9 @@ class TelegramCalendar:
         """
 
         self.locale = locale
-        self.jdate = locale == 'fa'
+        self.use_jdate = locale == 'fa'
 
-        if self.jdate:
+        if self.use_jdate:
             if current_date is None: current_date = jdate.today()
             if min_date is None: min_date = jdate(1, 1, 1)
             if max_date is None: max_date = jdate(1499, 12, 29)
@@ -174,7 +174,7 @@ class TelegramCalendar:
         empty_after = 0
 
         for i in range(diff):
-            if self.jdate:
+            if self.use_jdate:
                 n_date_gregorian = start.togregorian() + relativedelta(**{lstep: i})
                 n_date = jdate.fromgregorian(date=n_date_gregorian)
             else:
