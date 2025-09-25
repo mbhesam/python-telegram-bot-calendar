@@ -93,21 +93,16 @@ class DetailedTelegramCalendar(TelegramCalendar):
         text = self.nav_buttons[step]
         print(f"📝 Button text: {text}")
 
-        # Labels
-        if self.use_jdate:
-            month_name = self.months['fa'][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-            print(f"📊 Jalali labels: year={data['year']}, month={data['month']}")
-        else:
-            month_name = self.months[self.locale][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-            print(f"📊 Gregorian labels: year={data['year']}, month={data['month']}")
+        # Month name → always from self.locale
+        month_name = self.months[self.locale][self.current_date.month - 1]
+        data = {
+            "year": str(self.current_date.year),
+            "month": month_name,
+            "day": str(self.current_date.day),
+        }
+        print(f"📊 Labels: year={data['year']}, month={data['month']}")
 
-        # Prev / Next pages
+        # Navigation
         if self.use_jdate:
             print("🟢 Building Jalali navigation buttons")
             curr_page = self.current_date
@@ -116,8 +111,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 prev_page = self.current_date.replace(year=self.current_date.year - diff.years)
                 next_page = self.current_date.replace(year=self.current_date.year + diff.years)
                 print(f"📊 Jalali YEAR nav: prev={prev_page.year}, curr={curr_page.year}, next={next_page.year}")
+
             elif step == MONTH:
-                # For months, we need to handle year boundaries
+                # manual month wrap
                 new_year = self.current_date.year
                 new_month = self.current_date.month - diff.months
                 if new_month < 1:
@@ -132,24 +128,22 @@ class DetailedTelegramCalendar(TelegramCalendar):
                     new_month -= 12
                 next_page = self.current_date.replace(year=new_year, month=new_month)
                 print(f"📊 Jalali MONTH nav: prev={prev_page}, curr={curr_page}, next={next_page}")
+
             else:  # DAY
                 prev_page = self.current_date - relativedelta(days=diff.days)
                 next_page = self.current_date + relativedelta(days=diff.days)
                 print(f"📊 Jalali DAY nav: prev={prev_page}, curr={curr_page}, next={next_page}")
 
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
-            print(f"📊 Jalali nav exists: prev={prev_exists}, next={next_exists}")
         else:
             print("🔵 Building Gregorian navigation buttons")
             curr_page = self.current_date
             prev_page = self.current_date - diff
             next_page = self.current_date + diff
-
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
             print(f"📊 Gregorian nav: prev={prev_page}, curr={curr_page}, next={next_page}")
-            print(f"📊 Gregorian nav exists: prev={prev_exists}, next={next_exists}")
+
+        prev_exists = (prev_page >= self.min_date) if self.min_date else True
+        next_exists = (next_page <= self.max_date) if self.max_date else True
+        print(f"📊 Nav exists: prev={prev_exists}, next={next_exists}")
 
         buttons = [[
             self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
@@ -296,14 +290,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         months_buttons = []
         for i in range(1, 13):
-            # Create the date correctly for the calendar type
+            # Pick the right date class
             if self.use_jdate:
-                d = jdatetime.date(self.current_date.year, i, 1)  # Use jdatetime for Jalali
+                d = jdatetime.date(self.current_date.year, i, 1)
             else:
-                d = date(self.current_date.year, i, 1)  # Use datetime for Gregorian
+                d = date(self.current_date.year, i, 1)
 
             if self._valid_date(d):
-                month_name = self.months['fa'][i - 1] if self.use_jdate else self.months[self.locale][i - 1]
+                # always use self.locale, since MONTHS['fa'] already has Jalali names
+                month_name = self.months[self.locale][i - 1]
                 months_buttons.append(self._build_button(month_name, SELECT, MONTH, d))
                 print(f"📋 Month {i}: {month_name} - VALID - Date: {d}")
             else:
@@ -312,7 +307,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         months_buttons = rows(months_buttons, self.size_month)
 
-        # Create start date correctly
+        # navigation start and max dates
         if self.use_jdate:
             start = jdatetime.date(self.current_date.year, 1, 1)
             maxd = jdatetime.date(self.current_date.year, 12, 1)
@@ -320,8 +315,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
             start = date(self.current_date.year, 1, 1)
             maxd = date(self.current_date.year, 12, 1)
 
-        nav_buttons = self._build_nav_buttons(MONTH, diff=relativedelta(months=12),
-                                              mind=min_date(start, MONTH), maxd=maxd)
+        nav_buttons = self._build_nav_buttons(
+            MONTH,
+            diff=relativedelta(months=12),
+            mind=min_date(start, MONTH),
+            maxd=maxd
+        )
 
         self._keyboard = self._build_keyboard(months_buttons + nav_buttons)
         print(f"✅ BUILD MONTHS COMPLETE\n")
