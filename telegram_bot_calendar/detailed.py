@@ -186,7 +186,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
-            cal_type,
+#            cal_type,
             action,
             step if step else "",
             str(date_obj.year),
@@ -208,9 +208,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         params = call_data.split("_")
         print(f"📋 Raw params: {params}")
-
+# "cal_type",
         # Ensure we have enough parameters
-        expected_params = ["start", "calendar_id", "cal_type", "action", "step", "year", "month", "day"]
+        expected_params = ["start", "calendar_id", "action", "step", "year", "month", "day"]
         if len(params) < len(expected_params):
             print(f"❌ WARNING: Not enough parameters. Expected {len(expected_params)}, got {len(params)}")
             params.extend([""] * (len(expected_params) - len(params)))
@@ -218,8 +218,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
         params = dict(zip(expected_params[:len(params)], params))
         print(f"📋 Parsed params: {params}")
         # Keep calendar type fixed
-        cal_type = params.get("cal_type", "g")
-        self.use_jdate = (cal_type == "j")
+        #cal_type = params.get("cal_type", "g")
+        #self.use_jdate = (cal_type == "j")
 
         if params['action'] == NOTHING:
             print("❌ ACTION: NOTHING - returning None")
