@@ -11,15 +11,12 @@ STEPS = {YEAR: MONTH, MONTH: DAY}
 PREV_STEPS = {DAY: MONTH, MONTH: YEAR, YEAR: YEAR}
 PREV_ACTIONS = {DAY: GOTO, MONTH: GOTO, YEAR: NOTHING}
 
+
 class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
                  min_date=None, max_date=None, telethon=False, jdate=False, **kwargs):
-        # If jdate is not provided, try to detect from current_date type
-        if jdate is None and current_date is not None:
-            jdate = isinstance(current_date, jdatetime.date)
-
         self.use_jdate = jdate
         print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
 
@@ -41,9 +38,6 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 self.current_date = jdatetime.date.fromgregorian(date=self.current_date)
             else:
                 self.current_date = jdatetime.date.today()
-        elif not self.use_jdate and isinstance(self.current_date, jdatetime.date):
-            print(f"🔄 CORRECTING DATE TYPE: Converting to Gregorian")
-            self.current_date = self.current_date.togregorian()
 
         print(
             f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
@@ -99,6 +93,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
         nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
                                               mind=min_date(start, YEAR), maxd=maxd)
 
+        # Ensure nav_buttons is a list
+        if nav_buttons is None:
+            nav_buttons = []
+            print("⚠️  nav_buttons was None, using empty list")
+
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
         print(f"✅ BUILD YEARS COMPLETE: use_jdate={self.use_jdate}\n")
 
@@ -140,10 +139,55 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 prev_page = self.current_date.replace(year=prev_year)
                 next_page = self.current_date.replace(year=next_year)
                 print(f"📊 Jalali YEAR nav: prev={prev_page.year}, curr={curr_page.year}, next={next_page.year}")
-            # ... rest of the method remains the same
+            elif step == MONTH:
+                # For months, we need to handle year boundaries
+                new_year = self.current_date.year
+                new_month = self.current_date.month - diff.months
+                if new_month < 1:
+                    new_year -= 1
+                    new_month += 12
+                prev_page = self.current_date.replace(year=new_year, month=new_month)
 
+                new_year = self.current_date.year
+                new_month = self.current_date.month + diff.months
+                if new_month > 12:
+                    new_year += 1
+                    new_month -= 12
+                next_page = self.current_date.replace(year=new_year, month=new_month)
+                print(f"📊 Jalali MONTH nav: prev={prev_page}, curr={curr_page}, next={next_page}")
+            else:  # DAY
+                prev_page = self.current_date - relativedelta(days=diff.days)
+                next_page = self.current_date + relativedelta(days=diff.days)
+                print(f"📊 Jalali DAY nav: prev={prev_page}, curr={curr_page}, next={next_page}")
+
+            prev_exists = (prev_page >= self.min_date) if self.min_date else True
+            next_exists = (next_page <= self.max_date) if self.max_date else True
+            print(f"📊 Jalali nav exists: prev={prev_exists}, next={next_exists}")
+        else:
+            print("🔵 Building Gregorian navigation buttons")
+            curr_page = self.current_date
+            prev_page = self.current_date - diff
+            next_page = self.current_date + diff
+
+            prev_exists = (prev_page >= self.min_date) if self.min_date else True
+            next_exists = (next_page <= self.max_date) if self.max_date else True
+            print(f"📊 Gregorian nav: prev={prev_page}, curr={curr_page}, next={next_page}")
+            print(f"📊 Gregorian nav exists: prev={prev_exists}, next={next_exists}")
+
+        buttons = [[
+            self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
+                               GOTO if prev_exists else NOTHING, step, prev_page),
+            self._build_button(text[1].format(**data),
+                               PREV_ACTIONS[step], PREV_STEPS[step], curr_page),
+            self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
+                               GOTO if next_exists else NOTHING, step, next_page),
+        ]]
+
+        print(f"✅ NAV BUTTONS COMPLETE: step={step}\n")
+        return buttons
 
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
+        """Build individual calendar button with debug info"""
         print(
             f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate={self.use_jdate}")
 
@@ -172,7 +216,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
-            calendar_type,  # ← ADD THIS LINE: 'j' for Jalali, 'g' for Gregorian
+            calendar_type,  # 'j' for Jalali, 'g' for Gregorian
             action,
             step if step else "",
             str(date_obj.year),
@@ -282,7 +326,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         for i in range(1, 13):
             # Create the date object correctly for Jalali
             if self.use_jdate:
-                d = jdatetime.date(self.current_date.year, i, 1)  # FIXED: use jdatetime.date instead of jdate
+                d = jdatetime.date(self.current_date.year, i, 1)
             else:
                 d = date(self.current_date.year, i, 1)
 
@@ -298,14 +342,19 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Create start date correctly
         if self.use_jdate:
-            start = jdatetime.date(self.current_date.year, 1, 1)  # FIXED: use jdatetime.date instead of jdate
-            maxd = jdatetime.date(self.current_date.year, 12, 1)  # FIXED: use jdatetime.date instead of jdate
+            start = jdatetime.date(self.current_date.year, 1, 1)
+            maxd = jdatetime.date(self.current_date.year, 12, 1)
         else:
             start = date(self.current_date.year, 1, 1)
             maxd = date(self.current_date.year, 12, 1)
 
         nav_buttons = self._build_nav_buttons(MONTH, diff=relativedelta(months=12),
                                               mind=min_date(start, MONTH), maxd=maxd)
+
+        # Ensure nav_buttons is a list
+        if nav_buttons is None:
+            nav_buttons = []
+            print("⚠️  nav_buttons was None, using empty list")
 
         self._keyboard = self._build_keyboard(months_buttons + nav_buttons)
         print(f"✅ BUILD MONTHS COMPLETE\n")
@@ -318,8 +367,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
             print(f"📊 Jalali month days: {days_num}")
-            start = jdatetime.date(self.current_date.year, self.current_date.month,
-                                   1)  # FIXED: use jdatetime.date instead of jdate
+            start = jdatetime.date(self.current_date.year, self.current_date.month, 1)
         else:
             days_num = monthrange(self.current_date.year, self.current_date.month)[1]
             print(f"📊 Gregorian month days: {days_num}")
@@ -345,6 +393,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               mind=mind, maxd=max_date(maxd_date, MONTH))
 
+        # Ensure nav_buttons is a list
+        if nav_buttons is None:
+            nav_buttons = []
+            print("⚠️  nav_buttons was None, using empty list")
+
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
         print(f"✅ BUILD DAYS COMPLETE\n")
 
@@ -357,9 +410,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
             try:
                 if step == YEAR:
                     if self.use_jdate:
-                        # Validate Jalali year range
                         year = start.year + i
-                        if year < 1 or year > 1500:  # Reasonable Jalali year range
+                        # Validate Jalali year range
+                        if year < 1 or year > 1500:
                             print(f"❌ Invalid Jalali year: {year}")
                             result.append(None)
                             continue
