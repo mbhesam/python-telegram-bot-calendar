@@ -4,7 +4,6 @@ import random
 from datetime import date
 
 import jdatetime
-from jdatetime import date as jdate
 from dateutil.relativedelta import relativedelta
 
 try:
@@ -60,14 +59,14 @@ class TelegramCalendar:
         self.use_jdate = locale == 'fa'
 
         if self.use_jdate:
-            if current_date is None: current_date = jdate.today()
-            if min_date is None: min_date = jdate(1, 1, 1)
-            if max_date is None: max_date = jdate(1499, 12, 29)
+            if current_date is None: current_date = jdatetime.date.today()
+            if min_date is None: min_date = jdatetime.date(1300, 1, 1)
+            if max_date is None: max_date = jdatetime.date(1499, 12, 29)
             self.min_date = jdatetime.date.fromgregorian(date=min_date)
             self.max_date = jdatetime.date.fromgregorian(date=max_date)
         else:
             if current_date is None: current_date = date.today()
-            if min_date is None: min_date = date(1, 1, 1)
+            if min_date is None: min_date = date(1800, 1, 1)
             if max_date is None: max_date = date(2999, 12, 31)
             self.min_date = min_date
             self.max_date = max_date
