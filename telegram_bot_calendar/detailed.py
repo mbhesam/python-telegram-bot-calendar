@@ -307,32 +307,46 @@ class DetailedTelegramCalendar(TelegramCalendar):
                     print(f"❌ WRONG TYPE at index {i}: Expected date, got {type(item)} - {item}")
 
         return result
-
+    # Override other build methods with debug prints
     def _build_months(self):
+        print(f"\n📅 BUILD MONTHS: jdate={self.jdate}, current_date={self.current_date}")
+
         months_buttons = []
         for i in range(1, 13):
             d = self.current_date.replace(month=i, day=1)
             if self._valid_date(d):
-                month_name = self.months['fa'][i-1] if self.jdate else self.months[self.locale][i-1]
+                month_name = self.months['fa'][i - 1] if self.jdate else self.months[self.locale][i - 1]
                 months_buttons.append(self._build_button(month_name, SELECT, MONTH, d))
+                print(f"📋 Month {i}: {month_name} - VALID")
             else:
                 months_buttons.append(self._build_button(self.empty_month_button, NOTHING))
+                print(f"📋 Month {i}: EMPTY - INVALID")
 
         months_buttons = rows(months_buttons, self.size_month)
         start = self.current_date.replace(day=1)
+
+        if self.jdate:
+            maxd = start.replace(month=12)
+        else:
+            maxd = start.replace(month=12)
+
         nav_buttons = self._build_nav_buttons(MONTH, diff=relativedelta(months=12),
-                                              mind=min_date(start, MONTH),
-                                              maxd=max_date(start.replace(month=12), MONTH))
+                                              mind=min_date(start, MONTH), maxd=maxd)
 
         self._keyboard = self._build_keyboard(months_buttons + nav_buttons)
+        print(f"✅ BUILD MONTHS COMPLETE\n")
 
     def _build_days(self):
+        print(f"\n📅 BUILD DAYS: jdate={self.jdate}, current_date={self.current_date}")
+
         if self.jdate:
-            days_num = jdatetime.j_days_in_month[self.current_date.month-1]
+            days_num = jdatetime.j_days_in_month[self.current_date.month - 1]
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
+            print(f"📊 Jalali month days: {days_num}")
         else:
             days_num = monthrange(self.current_date.year, self.current_date.month)[1]
+            print(f"📊 Gregorian month days: {days_num}")
 
         start = self.current_date.replace(day=1)
         days = self._get_period(DAY, start, days_num)
@@ -343,14 +357,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
             self.size_day
         )
 
-        days_of_week_buttons = [[self._build_button(self.days_of_week[self.locale][i], NOTHING) for i in range(7)]]
+        locale_key = 'fa' if self.jdate else self.locale
+        days_of_week_buttons = [[self._build_button(self.days_of_week[locale_key][i], NOTHING) for i in range(7)]]
 
         mind = min_date(start, MONTH)
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               mind=mind, maxd=max_date(start.replace(day=days_num), MONTH))
 
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
-
+        print(f"✅ BUILD DAYS COMPLETE\n")
     # ---------------------- NAV BUTTONS ----------------------
 
     def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
