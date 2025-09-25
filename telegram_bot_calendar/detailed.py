@@ -291,18 +291,19 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print(f"❌ UNKNOWN STEP: {step}")
 
     def _build_months(self):
-        print(f"\n📅 BUILD MONTHS: jdate={self.jdate}, current_date={self.current_date}")
+        # Fix: Use self.use_jdate instead of self.jdate
+        print(f"\n📅 BUILD MONTHS: use_jdate={self.use_jdate}, current_date={self.current_date}")
 
         months_buttons = []
         for i in range(1, 13):
             # Create the date object correctly for Jalali
-            if self.jdate:
+            if self.use_jdate:  # CHANGED: self.jdate -> self.use_jdate
                 d = jdatetime.date(self.current_date.year, i, 1)
             else:
                 d = date(self.current_date.year, i, 1)
 
             if self._valid_date(d):
-                month_name = self.months['fa'][i - 1] if self.jdate else self.months[self.locale][i - 1]
+                month_name = self.months['fa'][i - 1] if self.use_jdate else self.months[self.locale][i - 1]  # CHANGED
                 months_buttons.append(self._build_button(month_name, SELECT, MONTH, d))
                 print(f"📋 Month {i}: {month_name} - VALID - Date: {d}")
             else:
@@ -312,7 +313,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         months_buttons = rows(months_buttons, self.size_month)
 
         # Create start date correctly
-        if self.jdate:
+        if self.use_jdate:  # CHANGED: self.jdate -> self.use_jdate
             start = jdatetime.date(self.current_date.year, 1, 1)
             maxd = jdatetime.date(self.current_date.year, 12, 1)
         else:
@@ -326,9 +327,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ BUILD MONTHS COMPLETE\n")
 
     def _build_days(self):
-        print(f"\n📅 BUILD DAYS: jdate={self.jdate}, current_date={self.current_date}")
+        # Fix: Use self.use_jdate instead of self.jdate
+        print(f"\n📅 BUILD DAYS: use_jdate={self.use_jdate}, current_date={self.current_date}")
 
-        if self.jdate:
+        if self.use_jdate:  # CHANGED: self.jdate -> self.use_jdate
             days_num = jdatetime.j_days_in_month[self.current_date.month - 1]
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
@@ -350,13 +352,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
         )
 
         # Use correct locale for days of week
-        locale_key = 'fa' if self.jdate else self.locale
+        locale_key = 'fa' if self.use_jdate else self.locale  # CHANGED: self.jdate -> self.use_jdate
         days_of_week_buttons = [[self._build_button(self.days_of_week[locale_key][i], NOTHING) for i in range(7)]]
         print(f"📊 Days of week locale: {locale_key}")
 
         mind = min_date(start, MONTH)
-        maxd_date = start.replace(day=days_num) if self.jdate else date(self.current_date.year, self.current_date.month,
-                                                                        days_num)
+        maxd_date = start.replace(day=days_num) if self.use_jdate else date(self.current_date.year,
+                                                                            self.current_date.month,
+                                                                            days_num)  # CHANGED
+
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               mind=mind, maxd=max_date(maxd_date, MONTH))
 
