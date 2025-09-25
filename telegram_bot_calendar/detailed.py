@@ -123,7 +123,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             else:  # DAY
                 cur_tmp = self.current_date.togregorian() - relativedelta(days=diff.days)
                 prev_page = jdatetime.date.fromgregorian(date=cur_tmp)
-                cur_tmp = self.current_date + relativedelta(days=diff.days)
+                cur_tmp = self.current_date.togregorian() + relativedelta(days=diff.days)
                 next_page = jdatetime.date.fromgregorian(date=cur_tmp)
                 print(f"📊 Jalali DAY nav: prev={prev_page}, curr={curr_page}, next={next_page}")
 
