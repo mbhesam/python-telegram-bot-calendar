@@ -185,10 +185,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"   ↳ Final date_obj: {date_obj} (type: {type(date_obj)})")
 
+        calendar_type = 'j' if self.use_jdate else 'g'  # 'j' for Jalali, 'g' for Gregorian
         # Build the callback data
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
+            calendar_type,  # ADD THIS: store calendar type in callback
             action,
             step if step else "",
             str(date_obj.year),
@@ -206,7 +208,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
         # Debug the current calendar instance
         print(f"🔍 CALENDAR INSTANCE: use_jdate={self.use_jdate}, id={id(self)}")
 
+
         params = call_data.split("_")
+        calendar_type = params[2]  # 'j' or 'g'
+        self.use_jdate = (calendar_type == 'j')  # Set use_jdate based on callback data
         print(f"📋 Raw params: {params}")
 
         # Ensure we have enough parameters
