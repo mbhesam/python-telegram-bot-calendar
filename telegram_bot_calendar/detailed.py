@@ -11,7 +11,6 @@ STEPS = {YEAR: MONTH, MONTH: DAY}
 PREV_STEPS = {DAY: MONTH, MONTH: YEAR, YEAR: YEAR}
 PREV_ACTIONS = {DAY: GOTO, MONTH: GOTO, YEAR: NOTHING}
 
-
 class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
@@ -293,7 +292,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         for i in range(1, 13):
             # Create the date object correctly for Jalali
             if self.use_jdate:
-                d = jdatetime.date(self.current_date.year, i, 1)
+                d = jdatetime.date(self.current_date.year, i, 1)  # FIXED: use jdatetime.date instead of jdate
             else:
                 d = date(self.current_date.year, i, 1)
 
@@ -309,8 +308,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Create start date correctly
         if self.use_jdate:
-            start = jdatetime.date(self.current_date.year, 1, 1)
-            maxd = jdatetime.date(self.current_date.year, 12, 1)
+            start = jdatetime.date(self.current_date.year, 1, 1)  # FIXED: use jdatetime.date instead of jdate
+            maxd = jdatetime.date(self.current_date.year, 12, 1)  # FIXED: use jdatetime.date instead of jdate
         else:
             start = date(self.current_date.year, 1, 1)
             maxd = date(self.current_date.year, 12, 1)
@@ -329,7 +328,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
             print(f"📊 Jalali month days: {days_num}")
-            start = jdatetime.date(self.current_date.year, self.current_date.month, 1)
+            start = jdatetime.date(self.current_date.year, self.current_date.month,
+                                   1)  # FIXED: use jdatetime.date instead of jdate
         else:
             days_num = monthrange(self.current_date.year, self.current_date.month)[1]
             print(f"📊 Gregorian month days: {days_num}")
@@ -349,7 +349,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📊 Days of week locale: {locale_key}")
 
         mind = min_date(start, MONTH)
-        maxd_date = start.replace(day=days_num) if self.use_jdate else date(self.current_date.year, self.current_date.month, days_num)
+        maxd_date = start.replace(day=days_num) if self.use_jdate else date(self.current_date.year,
+                                                                            self.current_date.month, days_num)
 
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               mind=mind, maxd=max_date(maxd_date, MONTH))
@@ -365,14 +366,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
         for i in range(count):
             if step == YEAR:
                 if self.use_jdate:
-                    current = jdatetime.date(start.year + i, 1, 1)
+                    current = jdatetime.date(start.year + i, 1, 1)  # FIXED: use jdatetime.date instead of jdate
                 else:
                     current = date(start.year + i, 1, 1)
             elif step == MONTH:
                 if self.use_jdate:
                     year = start.year + (start.month + i - 1) // 12
                     month = (start.month + i - 1) % 12 + 1
-                    current = jdatetime.date(year, month, 1)
+                    current = jdatetime.date(year, month, 1)  # FIXED: use jdatetime.date instead of jdate
                 else:
                     year = start.year + (start.month + i - 1) // 12
                     month = (start.month + i - 1) % 12 + 1
