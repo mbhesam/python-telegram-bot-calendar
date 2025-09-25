@@ -203,6 +203,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', use_jdate={self.use_jdate}")
         print(f"📅 BEFORE PROCESS: current_date={self.current_date}, type={type(self.current_date)}")
 
+        # Debug the current calendar instance
+        print(f"🔍 CALENDAR INSTANCE: use_jdate={self.use_jdate}, id={id(self)}")
+
         params = call_data.split("_")
         print(f"📋 Raw params: {params}")
 
@@ -231,15 +234,18 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📊 Processing: step={step}, year={year}, month={month}, day={day}")
 
+        # CRITICAL: Check why use_jdate is False
+        print(f"🚨 DEBUG: self.use_jdate = {self.use_jdate} (should be True for Jalali)")
+
         # CRITICAL: Preserve Jalali setting when processing callback data
         if self.use_jdate:
             print("🟢 Creating Jalali date from callback data")
             try:
-                self.current_date = jdate(year, month, day)
+                self.current_date = jdatetime.date(year, month, day)
                 print(f"✅ Jalali date created: {self.current_date}")
             except Exception as e:
                 print(f"❌ ERROR creating Jalali date: {e}")
-                self.current_date = jdate.today()
+                self.current_date = jdatetime.date.today()
         else:
             print("🔵 Creating Gregorian date from callback data")
             try:
