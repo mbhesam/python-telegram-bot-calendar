@@ -16,8 +16,30 @@ class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
-                 min_date=None, max_date=None, telethon=False, **kwargs):
+                 min_date=None, max_date=None, telethon=False, jdate=False, **kwargs):
+        self.use_jdate = jdate  # Rename to avoid conflict with jdate module
+        print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
+
+        # Set a proper default date
+        if current_date is None:
+            if self.use_jdate:
+                current_date = jdatetime.date.today()  # Use full module path
+                print(f"📅 Set default Jalali date: {current_date}")
+            else:
+                current_date = date.today()
+                print(f"📅 Set default Gregorian date: {current_date}")
+
         super().__init__(calendar_id, current_date, additional_buttons, locale, min_date, max_date, telethon, **kwargs)
+
+        # Double-check that current_date is correct type
+        if self.use_jdate and not isinstance(self.current_date, jdatetime.date):
+            print(f"🔄 CORRECTING DATE TYPE: Converting to Jalali")
+            if isinstance(self.current_date, date):
+                self.current_date = jdatetime.date.fromgregorian(date=self.current_date)
+            else:
+                self.current_date = jdatetime.date.today()
+
+        print(f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
 
     def _build(self, step=None):
         if not step:

@@ -40,8 +40,8 @@ class TelegramCalendar:
     empty_day_button = " "
     empty_month_button = " "
     empty_year_button = " "
-    size_year = 2
-    size_year_column = 2
+    size_year = 4
+    size_year_column = 4
     size_month = 3
     size_day = 7
     size_additional_buttons = 2
