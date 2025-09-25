@@ -51,7 +51,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print("🟢 Using Jalali date arithmetic")
             start_year = self.current_date.year - half_range
             print(f"📊 Jalali start year: {start_year}, current year: {self.current_date.year}")
-            start = jdate(start_year, 1, 1)
+            start = jdatetime.date(start_year, 1, 1)
         else:
             print("🔵 Using Gregorian date arithmetic")
             start_year = self.current_date.year - half_range
