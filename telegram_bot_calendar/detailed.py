@@ -15,7 +15,6 @@ PREV_ACTIONS = {DAY: GOTO, MONTH: GOTO, YEAR: NOTHING}
 class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
-
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
                  min_date=None, max_date=None, telethon=False, jdate=False, **kwargs):
         self.use_jdate = jdate  # Rename to avoid conflict with jdate module
@@ -290,45 +289,34 @@ class DetailedTelegramCalendar(TelegramCalendar):
         else:
             print(f"❌ UNKNOWN STEP: {step}")
 
-    def _get_period(self, step, start, count):
-        """Override _get_period to add debugging"""
-        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, jdate={self.jdate}")
-
-        # Call the parent method but with debugging
-        result = super()._get_period(step, start, count)
-        print(f"🔍 _GET_PERIOD RESULT: {result}")
-
-        # Check if any dates are wrong type
-        for i, item in enumerate(result):
-            if item is not None:
-                if self.jdate and not isinstance(item, jdate):
-                    print(f"❌ WRONG TYPE at index {i}: Expected jdate, got {type(item)} - {item}")
-                elif not self.jdate and not isinstance(item, date):
-                    print(f"❌ WRONG TYPE at index {i}: Expected date, got {type(item)} - {item}")
-
-        return result
-    # Override other build methods with debug prints
     def _build_months(self):
         print(f"\n📅 BUILD MONTHS: jdate={self.jdate}, current_date={self.current_date}")
 
         months_buttons = []
         for i in range(1, 13):
-            d = self.current_date.replace(month=i, day=1)
+            # Create the date object correctly for Jalali
+            if self.jdate:
+                d = jdatetime.date(self.current_date.year, i, 1)
+            else:
+                d = date(self.current_date.year, i, 1)
+
             if self._valid_date(d):
                 month_name = self.months['fa'][i - 1] if self.jdate else self.months[self.locale][i - 1]
                 months_buttons.append(self._build_button(month_name, SELECT, MONTH, d))
-                print(f"📋 Month {i}: {month_name} - VALID")
+                print(f"📋 Month {i}: {month_name} - VALID - Date: {d}")
             else:
                 months_buttons.append(self._build_button(self.empty_month_button, NOTHING))
                 print(f"📋 Month {i}: EMPTY - INVALID")
 
         months_buttons = rows(months_buttons, self.size_month)
-        start = self.current_date.replace(day=1)
 
+        # Create start date correctly
         if self.jdate:
-            maxd = start.replace(month=12)
+            start = jdatetime.date(self.current_date.year, 1, 1)
+            maxd = jdatetime.date(self.current_date.year, 12, 1)
         else:
-            maxd = start.replace(month=12)
+            start = date(self.current_date.year, 1, 1)
+            maxd = date(self.current_date.year, 12, 1)
 
         nav_buttons = self._build_nav_buttons(MONTH, diff=relativedelta(months=12),
                                               mind=min_date(start, MONTH), maxd=maxd)
@@ -344,11 +332,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
             print(f"📊 Jalali month days: {days_num}")
+
+            # Create start date correctly for Jalali
+            start = jdatetime.date(self.current_date.year, self.current_date.month, 1)
         else:
             days_num = monthrange(self.current_date.year, self.current_date.month)[1]
             print(f"📊 Gregorian month days: {days_num}")
+            start = date(self.current_date.year, self.current_date.month, 1)
 
-        start = self.current_date.replace(day=1)
         days = self._get_period(DAY, start, days_num)
 
         days_buttons = rows(
@@ -357,67 +348,83 @@ class DetailedTelegramCalendar(TelegramCalendar):
             self.size_day
         )
 
+        # Use correct locale for days of week
         locale_key = 'fa' if self.jdate else self.locale
         days_of_week_buttons = [[self._build_button(self.days_of_week[locale_key][i], NOTHING) for i in range(7)]]
+        print(f"📊 Days of week locale: {locale_key}")
 
         mind = min_date(start, MONTH)
+        maxd_date = start.replace(day=days_num) if self.jdate else date(self.current_date.year, self.current_date.month,
+                                                                        days_num)
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
-                                              mind=mind, maxd=max_date(start.replace(day=days_num), MONTH))
+                                              mind=mind, maxd=max_date(maxd_date, MONTH))
 
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
         print(f"✅ BUILD DAYS COMPLETE\n")
-    # ---------------------- NAV BUTTONS ----------------------
 
-    def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
-        text = self.nav_buttons[step]
+    def _get_period(self, step, start, count):
+        """Override _get_period to handle Jalali dates correctly"""
+        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, jdate={self.jdate}")
 
-        # Labels
-        if self.jdate:
-            month_name = self.months['fa'][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-        else:
-            month_name = self.months[self.locale][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-
-        # Prev / Next pages
-        if self.jdate:
-            # For Jalali dates, convert to Gregorian for relativedelta operations
-            gregorian_current = self.current_date.togregorian()
-
+        result = []
+        for i in range(count):
             if step == YEAR:
-                prev_page_gregorian = gregorian_current - relativedelta(years=diff.years)
-                next_page_gregorian = gregorian_current + relativedelta(years=diff.years)
+                if self.jdate:
+                    current = jdatetime.date(start.year + i, 1, 1)
+                else:
+                    current = date(start.year + i, 1, 1)
             elif step == MONTH:
-                prev_page_gregorian = gregorian_current - relativedelta(months=diff.months)
-                next_page_gregorian = gregorian_current + relativedelta(months=diff.months)
+                if self.jdate:
+                    # For Jalali months
+                    year = start.year + (start.month + i - 1) // 12
+                    month = (start.month + i - 1) % 12 + 1
+                    current = jdatetime.date(year, month, 1)
+                else:
+                    # For Gregorian months
+                    year = start.year + (start.month + i - 1) // 12
+                    month = (start.month + i - 1) % 12 + 1
+                    current = date(year, month, 1)
             else:  # DAY
-                prev_page_gregorian = gregorian_current - relativedelta(days=diff.days)
-                next_page_gregorian = gregorian_current + relativedelta(days=diff.days)
+                if self.jdate:
+                    current = start + relativedelta(days=i)
+                else:
+                    current = start + relativedelta(days=i)
 
-            # Convert back to Jalali
-            prev_page = jdate.fromgregorian(date=prev_page_gregorian)
-            next_page = jdate.fromgregorian(date=next_page_gregorian)
-            curr_page = self.current_date
+            # Validate the date
+            if self._valid_date(current):
+                result.append(current)
+                print(f"✅ Period {i}: {current} - VALID")
+            else:
+                result.append(None)
+                print(f"❌ Period {i}: {current} - INVALID")
 
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
-        else:
-            curr_page = self.current_date
-            prev_page = self.current_date - diff
-            next_page = self.current_date + diff
+        print(f"🔍 _GET_PERIOD RESULT: {result}")
+        return result
 
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
+    def _valid_date(self, date_obj):
+        """Check if date is valid considering min_date and max_date constraints"""
+        if date_obj is None:
+            return False
 
-        return [[
-            self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
-                               GOTO if prev_exists else NOTHING, step, prev_page),
-            self._build_button(text[1].format(**data),
-                               PREV_ACTIONS[step], PREV_STEPS[step], curr_page),
-            self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
-                               GOTO if next_exists else NOTHING, step, next_page),
-        ]]
+        if self.min_date and date_obj < self.min_date:
+            return False
+
+        if self.max_date and date_obj > self.max_date:
+            return False
+
+        # Additional validation for Jalali dates
+        if self.jdate and isinstance(date_obj, jdatetime.date):
+            try:
+                # Try to create the date to validate it
+                jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
+                return True
+            except:
+                return False
+        elif not self.jdate and isinstance(date_obj, date):
+            try:
+                date(date_obj.year, date_obj.month, date_obj.day)
+                return True
+            except:
+                return False
+
+        return True
