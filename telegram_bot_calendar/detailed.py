@@ -42,13 +42,13 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
 
     def _build_years(self):
-        print(f"\n📅 BUILD YEARS START: jdate={self.jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD YEARS START: jdate={self.use_jdate}, current_date={self.current_date}")
 
         years_num = self.size_year * self.size_year_column
         half_range = (years_num - 1) // 2
 
         # Handle Jalali dates properly
-        if self.jdate:
+        if self.use_jdate:
             print("🟢 Using Jalali date arithmetic")
             start_year = self.current_date.year - half_range
             print(f"📊 Jalali start year: {start_year}, current year: {self.current_date.year}")
@@ -64,11 +64,6 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📋 Years list: {years}")
         print(f"📋 Years range: {[d.year for d in years if d is not None] if years else 'None'}")
 
-        # Debug each year individually
-        if years:
-            for i, year_date in enumerate(years):
-                print(f"📋 Year {i}: {year_date} (type: {type(year_date) if year_date else 'None'})")
-
         years_buttons = rows(
             [self._build_button(d.year if d else "NULL", SELECT if d else NOTHING, YEAR, d)
              for d in years],
@@ -76,7 +71,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         )
 
         # Calculate maxd properly
-        if self.jdate:
+        if self.use_jdate:
             maxd = jdate(start.year + years_num - 1, 12, 29)  # Use a safe end date
         else:
             maxd = date(start.year + years_num - 1, 12, 31)
@@ -86,30 +81,22 @@ class DetailedTelegramCalendar(TelegramCalendar):
                                               mind=min_date(start, YEAR), maxd=maxd)
 
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
-        print(f"✅ BUILD YEARS COMPLETE: jdate={self.jdate}\n")
+        print(f"✅ BUILD YEARS COMPLETE: jdate={self.use_jdate}\n")
 
     def _build_nav_buttons(self, step, diff, mind, maxd, *args, **kwargs):
-        print(f"🔄 BUILD NAV BUTTONS: step={step}, jdate={self.jdate}, current_date={self.current_date}")
+        print(f"🔄 BUILD NAV BUTTONS: step={step}, jdate={self.use_jdate}, current_date={self.current_date}")
 
         text = self.nav_buttons[step]
         print(f"📝 Button text: {text}")
 
-        # Labels
-        if self.jdate:
-            month_name = self.months['fa'][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-            print(f"📊 Jalali labels: year={data['year']}, month={data['month']}")
-        else:
-            month_name = self.months[self.locale][self.current_date.month - 1]
-            data = {"year": str(self.current_date.year),
-                    "month": month_name,
-                    "day": str(self.current_date.day)}
-            print(f"📊 Gregorian labels: year={data['year']}, month={data['month']}")
+        month_name = self.months[self.locale][self.current_date.month - 1]
+        data = {"year": str(self.current_date.year),
+                "month": month_name,
+                "day": str(self.current_date.day)}
+        print(f"📊 Gregorian labels: year={data['year']}, month={data['month']}")
 
         # Prev / Next pages
-        if self.jdate:
+        if self.use_jdate:
             print("🟢 Building Jalali navigation buttons")
             curr_page = self.current_date
 
@@ -167,7 +154,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
         """Build individual calendar button with debug info"""
         print(
-            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', jdate={self.jdate}")
+            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', jdate={self.use_jdate}")
 
         if action == NOTHING:
             print(f"   ↳ NOTHING button - text: {text}")
@@ -178,10 +165,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
             return {"text": text, "callback_data": NOTHING}
 
         # Ensure date_obj is the correct type for the current calendar mode
-        if self.jdate and isinstance(date_obj, date):
+        if self.use_jdate and isinstance(date_obj, date):
             print("   ↳ 🔄 Converting Gregorian to Jalali for button")
             date_obj = jdate.fromgregorian(date=date_obj)
-        elif not self.jdate and isinstance(date_obj, jdate):
+        elif not self.use_jdate and isinstance(date_obj, jdate):
             print("   ↳ 🔄 Converting Jalali to Gregorian for button")
             date_obj = date_obj.togregorian()
 
@@ -191,6 +178,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
+            self.use_jdate,
             action,
             step if step else "",
             str(date_obj.year),
@@ -202,14 +190,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
         return {"text": text, "callback_data": callback_data}
 
     def _process(self, call_data):
-        print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', jdate={self.jdate}")
+        print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', jdate={self.use_jdate}")
         print(f"📅 BEFORE PROCESS: current_date={self.current_date}, type={type(self.current_date)}")
 
         params = call_data.split("_")
         print(f"📋 Raw params: {params}")
 
         # Ensure we have enough parameters
-        expected_params = ["start", "calendar_id", "action", "step", "year", "month", "day"]
+        expected_params = ["start", "calendar_id", "use_jdate", "action", "step", "year", "month", "day"]
         if len(params) < len(expected_params):
             print(f"❌ WARNING: Not enough parameters. Expected {len(expected_params)}, got {len(params)}")
             # Pad with empty strings
@@ -235,7 +223,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📊 Processing: step={step}, year={year}, month={month}, day={day}")
 
         # CRITICAL: Preserve Jalali setting when processing callback data
-        if self.jdate:
+        if self.use_jdate:
             print("🟢 Creating Jalali date from callback data")
             try:
                 self.current_date = jdate(year, month, day)
@@ -273,7 +261,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 return self.current_date, None, step
 
     def _build(self, step=None):
-        print(f"\n🏗️ BUILD CALLED: step={step}, jdate={self.jdate}")
+        print(f"\n🏗️ BUILD CALLED: step={step}, jdate={self.use_jdate}")
         if not step:
             step = self.first_step
         self.step = step
@@ -291,18 +279,18 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print(f"❌ UNKNOWN STEP: {step}")
 
     def _build_months(self):
-        print(f"\n📅 BUILD MONTHS: jdate={self.jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD MONTHS: jdate={self.use_jdate}, current_date={self.current_date}")
 
         months_buttons = []
         for i in range(1, 13):
             # Create the date object correctly for Jalali
-            if self.jdate:
+            if self.use_jdate:
                 d = jdatetime.date(self.current_date.year, i, 1)
             else:
                 d = date(self.current_date.year, i, 1)
 
             if self._valid_date(d):
-                month_name = self.months['fa'][i - 1] if self.jdate else self.months[self.locale][i - 1]
+                month_name = self.months['fa'][i - 1] if self.use_jdate else self.months[self.locale][i - 1]
                 months_buttons.append(self._build_button(month_name, SELECT, MONTH, d))
                 print(f"📋 Month {i}: {month_name} - VALID - Date: {d}")
             else:
@@ -312,7 +300,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         months_buttons = rows(months_buttons, self.size_month)
 
         # Create start date correctly
-        if self.jdate:
+        if self.use_jdate:
             start = jdatetime.date(self.current_date.year, 1, 1)
             maxd = jdatetime.date(self.current_date.year, 12, 1)
         else:
@@ -326,9 +314,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ BUILD MONTHS COMPLETE\n")
 
     def _build_days(self):
-        print(f"\n📅 BUILD DAYS: jdate={self.jdate}, current_date={self.current_date}")
+        print(f"\n📅 BUILD DAYS: jdate={self.use_jdate}, current_date={self.current_date}")
 
-        if self.jdate:
+        if self.use_jdate:
             days_num = jdatetime.j_days_in_month[self.current_date.month - 1]
             if self.current_date.month == 12 and self.current_date.isleap():
                 days_num += 1
@@ -350,12 +338,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         )
 
         # Use correct locale for days of week
-        locale_key = 'fa' if self.jdate else self.locale
+        locale_key = 'fa' if self.use_jdate else self.locale
         days_of_week_buttons = [[self._build_button(self.days_of_week[locale_key][i], NOTHING) for i in range(7)]]
         print(f"📊 Days of week locale: {locale_key}")
 
         mind = min_date(start, MONTH)
-        maxd_date = start.replace(day=days_num) if self.jdate else date(self.current_date.year, self.current_date.month,
+        maxd_date = start.replace(day=days_num) if self.use_jdate else date(self.current_date.year, self.current_date.month,
                                                                         days_num)
         nav_buttons = self._build_nav_buttons(DAY, diff=relativedelta(months=1),
                                               mind=mind, maxd=max_date(maxd_date, MONTH))
@@ -365,17 +353,17 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
     def _get_period(self, step, start, count):
         """Override _get_period to handle Jalali dates correctly"""
-        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, jdate={self.jdate}")
+        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, jdate={self.use_jdate}")
 
         result = []
         for i in range(count):
             if step == YEAR:
-                if self.jdate:
+                if self.use_jdate:
                     current = jdatetime.date(start.year + i, 1, 1)
                 else:
                     current = date(start.year + i, 1, 1)
             elif step == MONTH:
-                if self.jdate:
+                if self.use_jdate:
                     # For Jalali months
                     year = start.year + (start.month + i - 1) // 12
                     month = (start.month + i - 1) % 12 + 1
@@ -386,7 +374,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
                     month = (start.month + i - 1) % 12 + 1
                     current = date(year, month, 1)
             else:  # DAY
-                if self.jdate:
+                if self.use_jdate:
                     current = start + relativedelta(days=i)
                 else:
                     current = start + relativedelta(days=i)
@@ -414,14 +402,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
             return False
 
         # Additional validation for Jalali dates
-        if self.jdate and isinstance(date_obj, jdatetime.date):
+        if self.use_jdate and isinstance(date_obj, jdatetime.date):
             try:
                 # Try to create the date to validate it
                 jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
                 return True
             except:
                 return False
-        elif not self.jdate and isinstance(date_obj, date):
+        elif not self.use_jdate and isinstance(date_obj, date):
             try:
                 date(date_obj.year, date_obj.month, date_obj.day)
                 return True
