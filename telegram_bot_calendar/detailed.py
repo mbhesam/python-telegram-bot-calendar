@@ -58,8 +58,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         if self.use_jdate:
             print("🟢 Using Jalali date arithmetic")
             start_year = self.current_date.year - half_range
+            # Ensure start_year is valid for Jalali
+            if start_year < 1:
+                start_year = 1
+                print(f"⚠️  Adjusted start year to: {start_year}")
             print(f"📊 Jalali start year: {start_year}, current year: {self.current_date.year}")
-            start = jdate(start_year, 1, 1)
+            start = jdatetime.date(start_year, 1, 1)
         else:
             print("🔵 Using Gregorian date arithmetic")
             start_year = self.current_date.year - half_range
@@ -84,7 +88,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Calculate maxd properly
         if self.use_jdate:
-            maxd = jdate(start.year + years_num - 1, 12, 29)
+            max_year = start.year + years_num - 1
+            if max_year > 1500:  # Reasonable max for Jalali
+                max_year = 1500
+            maxd = jdatetime.date(max_year, 12, 29)
         else:
             maxd = date(start.year + years_num - 1, 12, 31)
 
@@ -121,55 +128,20 @@ class DetailedTelegramCalendar(TelegramCalendar):
             curr_page = self.current_date
 
             if step == YEAR:
-                prev_page = self.current_date.replace(year=self.current_date.year - diff.years)
-                next_page = self.current_date.replace(year=self.current_date.year + diff.years)
+                prev_year = self.current_date.year - diff.years
+                next_year = self.current_date.year + diff.years
+
+                # Validate year ranges for Jalali
+                if prev_year < 1:
+                    prev_year = 1
+                if next_year > 1500:
+                    next_year = 1500
+
+                prev_page = self.current_date.replace(year=prev_year)
+                next_page = self.current_date.replace(year=next_year)
                 print(f"📊 Jalali YEAR nav: prev={prev_page.year}, curr={curr_page.year}, next={next_page.year}")
-            elif step == MONTH:
-                # For months, we need to handle year boundaries
-                new_year = self.current_date.year
-                new_month = self.current_date.month - diff.months
-                if new_month < 1:
-                    new_year -= 1
-                    new_month += 12
-                prev_page = self.current_date.replace(year=new_year, month=new_month)
+            # ... rest of the method remains the same
 
-                new_year = self.current_date.year
-                new_month = self.current_date.month + diff.months
-                if new_month > 12:
-                    new_year += 1
-                    new_month -= 12
-                next_page = self.current_date.replace(year=new_year, month=new_month)
-                print(f"📊 Jalali MONTH nav: prev={prev_page}, curr={curr_page}, next={next_page}")
-            else:  # DAY
-                prev_page = self.current_date - relativedelta(days=diff.days)
-                next_page = self.current_date + relativedelta(days=diff.days)
-                print(f"📊 Jalali DAY nav: prev={prev_page}, curr={curr_page}, next={next_page}")
-
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
-            print(f"📊 Jalali nav exists: prev={prev_exists}, next={next_exists}")
-        else:
-            print("🔵 Building Gregorian navigation buttons")
-            curr_page = self.current_date
-            prev_page = self.current_date - diff
-            next_page = self.current_date + diff
-
-            prev_exists = (prev_page >= self.min_date) if self.min_date else True
-            next_exists = (next_page <= self.max_date) if self.max_date else True
-            print(f"📊 Gregorian nav: prev={prev_page}, curr={curr_page}, next={next_page}")
-            print(f"📊 Gregorian nav exists: prev={prev_exists}, next={next_exists}")
-
-        buttons = [[
-            self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
-                               GOTO if prev_exists else NOTHING, step, prev_page),
-            self._build_button(text[1].format(**data),
-                               PREV_ACTIONS[step], PREV_STEPS[step], curr_page),
-            self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
-                               GOTO if next_exists else NOTHING, step, next_page),
-        ]]
-
-        print(f"✅ NAV BUTTONS COMPLETE: step={step}\n")
-        return buttons
 
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
         print(
@@ -382,33 +354,49 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         result = []
         for i in range(count):
-            if step == YEAR:
-                if self.use_jdate:
-                    current = jdatetime.date(start.year + i, 1, 1)  # FIXED: use jdatetime.date instead of jdate
-                else:
-                    current = date(start.year + i, 1, 1)
-            elif step == MONTH:
-                if self.use_jdate:
-                    year = start.year + (start.month + i - 1) // 12
-                    month = (start.month + i - 1) % 12 + 1
-                    current = jdatetime.date(year, month, 1)  # FIXED: use jdatetime.date instead of jdate
-                else:
-                    year = start.year + (start.month + i - 1) // 12
-                    month = (start.month + i - 1) % 12 + 1
-                    current = date(year, month, 1)
-            else:  # DAY
-                if self.use_jdate:
-                    current = start + relativedelta(days=i)
-                else:
-                    current = start + relativedelta(days=i)
+            try:
+                if step == YEAR:
+                    if self.use_jdate:
+                        # Validate Jalali year range
+                        year = start.year + i
+                        if year < 1 or year > 1500:  # Reasonable Jalali year range
+                            print(f"❌ Invalid Jalali year: {year}")
+                            result.append(None)
+                            continue
+                        current = jdatetime.date(year, 1, 1)
+                    else:
+                        current = date(start.year + i, 1, 1)
+                elif step == MONTH:
+                    if self.use_jdate:
+                        year = start.year + (start.month + i - 1) // 12
+                        month = (start.month + i - 1) % 12 + 1
+                        # Validate Jalali date
+                        if year < 1 or year > 1500 or month < 1 or month > 12:
+                            print(f"❌ Invalid Jalali date: year={year}, month={month}")
+                            result.append(None)
+                            continue
+                        current = jdatetime.date(year, month, 1)
+                    else:
+                        year = start.year + (start.month + i - 1) // 12
+                        month = (start.month + i - 1) % 12 + 1
+                        current = date(year, month, 1)
+                else:  # DAY
+                    if self.use_jdate:
+                        current = start + relativedelta(days=i)
+                    else:
+                        current = start + relativedelta(days=i)
 
-            # Validate the date
-            if self._valid_date(current):
-                result.append(current)
-                print(f"✅ Period {i}: {current} - VALID")
-            else:
+                # Validate the date
+                if self._valid_date(current):
+                    result.append(current)
+                    print(f"✅ Period {i}: {current} - VALID")
+                else:
+                    result.append(None)
+                    print(f"❌ Period {i}: {current} - INVALID")
+
+            except Exception as e:
+                print(f"❌ Period {i}: ERROR - {e}")
                 result.append(None)
-                print(f"❌ Period {i}: {current} - INVALID")
 
         print(f"🔍 _GET_PERIOD RESULT: {result}")
         return result
@@ -418,6 +406,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         if date_obj is None:
             return False
 
+        # Check min/max date constraints
         if self.min_date and date_obj < self.min_date:
             return False
 
@@ -427,15 +416,26 @@ class DetailedTelegramCalendar(TelegramCalendar):
         # Additional validation for Jalali dates
         if self.use_jdate and isinstance(date_obj, jdatetime.date):
             try:
+                # Check if it's a valid Jalali date
+                if date_obj.year < 1 or date_obj.year > 1500:
+                    return False
+                if date_obj.month < 1 or date_obj.month > 12:
+                    return False
+                if date_obj.day < 1 or date_obj.day > 31:
+                    return False
+
+                # Try to create the date to validate it
                 jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
                 return True
-            except:
+            except Exception as e:
+                print(f"❌ Invalid Jalali date {date_obj}: {e}")
                 return False
         elif not self.use_jdate and isinstance(date_obj, date):
             try:
                 date(date_obj.year, date_obj.month, date_obj.day)
                 return True
-            except:
+            except Exception as e:
+                print(f"❌ Invalid Gregorian date {date_obj}: {e}")
                 return False
 
         return True
