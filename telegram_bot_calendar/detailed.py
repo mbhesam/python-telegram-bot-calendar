@@ -16,10 +16,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
                  min_date=None, max_date=None, telethon=False, jdate=False, **kwargs):
-        self.use_jdate = jdate
+        # If jdate is not provided, default to False
+        self.use_jdate = jdate if jdate is not None else False
         print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
 
-        # Set a proper default date
+        # Set a proper default date based on calendar type
         if current_date is None:
             if self.use_jdate:
                 current_date = jdatetime.date.today()
@@ -37,9 +38,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 self.current_date = jdatetime.date.fromgregorian(date=self.current_date)
             else:
                 self.current_date = jdatetime.date.today()
+        elif not self.use_jdate and isinstance(self.current_date, jdatetime.date):
+            print(f"🔄 CORRECTING DATE TYPE: Converting to Gregorian")
+            self.current_date = self.current_date.togregorian()
 
-        print(f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
-
+        print(
+            f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
     def _build_years(self):
         print(f"\n📅 BUILD YEARS START: use_jdate={self.use_jdate}, current_date={self.current_date}")
 
@@ -164,8 +168,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
         return buttons
 
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
-        """Build individual calendar button with debug info"""
-        print(f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate={self.use_jdate}")
+        print(
+            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate={self.use_jdate}")
 
         if action == NOTHING:
             print(f"   ↳ NOTHING button - text: {text}")
@@ -175,22 +179,22 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print("   ↳ ❌ ERROR: No date_obj provided")
             return {"text": text, "callback_data": NOTHING}
 
-        # Ensure date_obj is the correct type for the current calendar mode
+        # Ensure date_obj is the correct type
         if self.use_jdate and isinstance(date_obj, date):
             print("   ↳ 🔄 Converting Gregorian to Jalali for button")
-            date_obj = jdate.fromgregorian(date=date_obj)
-        elif not self.use_jdate and isinstance(date_obj, jdate):
+            date_obj = jdatetime.date.fromgregorian(date=date_obj)
+        elif not self.use_jdate and isinstance(date_obj, jdatetime.date):
             print("   ↳ 🔄 Converting Jalali to Gregorian for button")
             date_obj = date_obj.togregorian()
 
         print(f"   ↳ Final date_obj: {date_obj} (type: {type(date_obj)})")
 
-        calendar_type = 'j' if self.use_jdate else 'g'  # 'j' for Jalali, 'g' for Gregorian
-        # Build the callback data
+        # Build the callback data with calendar type
+        calendar_type = 'j' if self.use_jdate else 'g'
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
-            calendar_type,  # ADD THIS: store calendar type in callback
+            calendar_type,  # Calendar type: 'j' for Jalali, 'g' for Gregorian
             action,
             step if step else "",
             str(date_obj.year),
@@ -205,23 +209,23 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', use_jdate={self.use_jdate}")
         print(f"📅 BEFORE PROCESS: current_date={self.current_date}, type={type(self.current_date)}")
 
-        # Debug the current calendar instance
-        print(f"🔍 CALENDAR INSTANCE: use_jdate={self.use_jdate}, id={id(self)}")
-
-
         params = call_data.split("_")
-        calendar_type = params[2]  # 'j' or 'g'
-        self.use_jdate = (calendar_type == 'j')  # Set use_jdate based on callback data
         print(f"📋 Raw params: {params}")
 
-        # Ensure we have enough parameters
-        expected_params = ["start", "calendar_id", "action", "step", "year", "month", "day"]
+        # New expected params with calendar type
+        expected_params = ["start", "calendar_id", "calendar_type", "action", "step", "year", "month", "day"]
+
         if len(params) < len(expected_params):
             print(f"❌ WARNING: Not enough parameters. Expected {len(expected_params)}, got {len(params)}")
             params.extend([""] * (len(expected_params) - len(params)))
 
-        params = dict(zip(expected_params[:len(params)], params))
+        params = dict(zip(expected_params, params))
         print(f"📋 Parsed params: {params}")
+
+        # Set calendar type from callback data
+        calendar_type = params.get('calendar_type', 'g')
+        self.use_jdate = (calendar_type == 'j')
+        print(f"🔄 SET CALENDAR TYPE: {calendar_type} -> use_jdate={self.use_jdate}")
 
         if params['action'] == NOTHING:
             print("❌ ACTION: NOTHING - returning None")
@@ -239,10 +243,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📊 Processing: step={step}, year={year}, month={month}, day={day}")
 
-        # CRITICAL: Check why use_jdate is False
-        print(f"🚨 DEBUG: self.use_jdate = {self.use_jdate} (should be True for Jalali)")
-
-        # CRITICAL: Preserve Jalali setting when processing callback data
+        # Create date based on calendar type
         if self.use_jdate:
             print("🟢 Creating Jalali date from callback data")
             try:
