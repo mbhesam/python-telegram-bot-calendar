@@ -69,8 +69,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
             for i, year_date in enumerate(years):
                 print(f"📋 Year {i}: {year_date} (type: {type(year_date) if year_date else 'None'})")
 
-        years_buttons = base.rows(
-            [self._build_button(d.year if d else "NULL", base.SELECT if d else base.NOTHING, YEAR, d)
+        years_buttons = rows(
+            [self._build_button(d.year if d else "NULL", SELECT if d else NOTHING, YEAR, d)
              for d in years],
             self.size_year
         )
@@ -83,7 +83,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📊 Navigation: mind={start}, maxd={maxd}")
         nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
-                                              mind=base.min_date(start, YEAR), maxd=maxd)
+                                              mind=min_date(start, YEAR), maxd=maxd)
 
         self._keyboard = self._build_keyboard(years_buttons + nav_buttons)
         print(f"✅ BUILD YEARS COMPLETE: jdate={self.jdate}\n")
@@ -117,7 +117,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 prev_page = self.current_date.replace(year=self.current_date.year - diff.years)
                 next_page = self.current_date.replace(year=self.current_date.year + diff.years)
                 print(f"📊 Jalali YEAR nav: prev={prev_page.year}, curr={curr_page.year}, next={next_page.year}")
-            elif step == base.MONTH:
+            elif step == MONTH:
                 # For months, we need to handle year boundaries
                 new_year = self.current_date.year
                 new_month = self.current_date.month - diff.months
@@ -154,11 +154,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         buttons = [[
             self._build_button(text[0].format(**data) if prev_exists else self.empty_nav_button,
-                               base.GOTO if prev_exists else base.NOTHING, step, prev_page),
+                               GOTO if prev_exists else NOTHING, step, prev_page),
             self._build_button(text[1].format(**data),
                                PREV_ACTIONS[step], PREV_STEPS[step], curr_page),
             self._build_button(text[2].format(**data) if next_exists else self.empty_nav_button,
-                               base.GOTO if next_exists else base.NOTHING, step, next_page),
+                               GOTO if next_exists else NOTHING, step, next_page),
         ]]
 
         print(f"✅ NAV BUTTONS COMPLETE: step={step}\n")
@@ -169,13 +169,13 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(
             f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', jdate={self.jdate}")
 
-        if action == base.NOTHING:
+        if action == NOTHING:
             print(f"   ↳ NOTHING button - text: {text}")
-            return {"text": text, "callback_data": base.NOTHING}
+            return {"text": text, "callback_data": NOTHING}
 
         if not date_obj:
             print("   ↳ ❌ ERROR: No date_obj provided")
-            return {"text": text, "callback_data": base.NOTHING}
+            return {"text": text, "callback_data": NOTHING}
 
         # Ensure date_obj is the correct type for the current calendar mode
         if self.jdate and isinstance(date_obj, date):
@@ -218,7 +218,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         params = dict(zip(expected_params[:len(params)], params))
         print(f"📋 Parsed params: {params}")
 
-        if params['action'] == base.NOTHING:
+        if params['action'] == NOTHING:
             print("❌ ACTION: NOTHING - returning None")
             return None, None, None
 
@@ -256,12 +256,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📅 AFTER DATE SET: current_date={self.current_date}, type={type(self.current_date)}")
 
-        if params['action'] == base.GOTO:
+        if params['action'] == GOTO:
             print(f"🔄 ACTION: GOTO - rebuilding for step={step}")
             self._build(step=step)
             return None, self._keyboard, step
 
-        if params['action'] == base.SELECT:
+        if params['action'] == SELECT:
             print(f"✅ ACTION: SELECT - step={step}")
             if step in STEPS:
                 next_step = STEPS[step]
