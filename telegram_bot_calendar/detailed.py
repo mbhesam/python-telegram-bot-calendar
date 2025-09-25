@@ -227,11 +227,9 @@ class DetailedTelegramCalendar(TelegramCalendar):
             return None, None, None
 
         print(f"📊 Processing: step={step}, year={year}, month={month}, day={day}")
-
-        # CRITICAL: Check why use_jdate is False
         print(f"🚨 DEBUG: self.use_jdate = {self.use_jdate} (should be True for Jalali)")
 
-        # CRITICAL: Preserve Jalali setting when processing callback data
+        # ✅ Always respect self.use_jdate when recreating date
         if self.use_jdate:
             print("🟢 Creating Jalali date from callback data")
             try:
@@ -251,9 +249,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📅 AFTER DATE SET: current_date={self.current_date}, type={type(self.current_date)}")
 
+        # ✅ Rebuild with same flags preserved
         if params['action'] == GOTO:
             print(f"🔄 ACTION: GOTO - rebuilding for step={step}")
-            self._build(step=step)
+            self._build(step=step)  # keeps self.use_jdate
             return None, self._keyboard, step
 
         if params['action'] == SELECT:
@@ -261,7 +260,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
             if step in STEPS:
                 next_step = STEPS[step]
                 print(f"📈 Moving to next step: {step} -> {next_step}")
-                self._build(step=next_step)
+                self._build(step=next_step)  # keeps self.use_jdate
                 return None, self._keyboard, next_step
             else:
                 print(f"🎉 Final selection: {self.current_date}")
