@@ -178,7 +178,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
-            self.use_jdate,
+            str(int(self.use_jdate)),
             action,
             step if step else "",
             str(date_obj.year),
