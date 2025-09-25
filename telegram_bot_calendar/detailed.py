@@ -107,10 +107,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
             print("🟢 Building Jalali navigation buttons")
             curr_page = self.current_date
 
-            if step == YEAR:
-                prev_page = self.current_date.replace(year=self.current_date.year - diff.years)
-                next_page = self.current_date.replace(year=self.current_date.year + diff.years)
-                print(f"📊 Jalali YEAR nav: prev={prev_page.year}, curr={curr_page.year}, next={next_page.year}")
+            if step == YEAR and self.use_jdate:
+                prev_year = max(1, self.current_date.year - diff.years)
+                next_year = min(9378, self.current_date.year + diff.years)
+                prev_page = self.current_date.replace(year=prev_year)
+                next_page = self.current_date.replace(year=next_year)
 
             elif step == MONTH:
                 # manual month wrap
