@@ -1,16 +1,9 @@
 from calendar import monthrange
-from datetime import date
-from dateutil.relativedelta import relativedelta
-import jdatetime
-import jdatetime
-
 from telegram_bot_calendar.base import *
-from telegram_bot_calendar.static import MONTHS, DAYS_OF_WEEK
 
 STEPS = {YEAR: MONTH, MONTH: DAY}
 PREV_STEPS = {DAY: MONTH, MONTH: YEAR, YEAR: YEAR}
 PREV_ACTIONS = {DAY: GOTO, MONTH: GOTO, YEAR: NOTHING}
-
 
 class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR

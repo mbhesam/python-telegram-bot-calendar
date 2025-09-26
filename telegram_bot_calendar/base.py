@@ -191,21 +191,21 @@ class TelegramCalendar:
 
         if self.max_date and date_obj > self.max_date:
             return False
-
-        # Additional validation for Jalali dates
-        if self.use_jdate and isinstance(date_obj, jdatetime.date):
-            try:
-                # Try to create the date to validate it
-                jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
-                return True
-            except:
-                return False
-        elif not self.use_jdate and isinstance(date_obj, date):
-            try:
-                date(date_obj.year, date_obj.month, date_obj.day)
-                return True
-            except:
-                return False
+        #
+        # # Additional validation for Jalali dates
+        # if self.use_jdate:
+        #     try:
+        #         # Try to create the date to validate it
+        #         jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
+        #         return True
+        #     except:
+        #         return False
+        # elif not self.use_jdate:
+        #     try:
+        #         date(date_obj.year, date_obj.month, date_obj.day)
+        #         return True
+        #     except:
+        #         return False
 
         return True
     def _get_period(self, step, start, count):
