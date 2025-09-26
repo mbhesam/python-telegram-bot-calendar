@@ -1,4 +1,4 @@
-# python-telegram-bot-calendar
+# persian-telegram-bot-calendar
 
 [//]: # ([![PyPI version]&#40;https://badge.fury.io/py/python-telegram-bot-calendar.svg&#41;]&#40;https://badge.fury.io/py/python-telegram-bot-calendar&#41;)
 [![CodeFactor](https://www.codefactor.io/repository/github/artembakhanov/python-telegram-bot-calendar/badge)](https://www.codefactor.io/repository/github/artembakhanov/python-telegram-bot-calendar)
@@ -7,7 +7,7 @@
 This is fork of artembakhanov/python-telegram-bot-calendar which support jalali calendar. 
 Very simple inline calendar for your bot.
 
-<img src="https://github.com/mbhesam/python-telegram-bot-calendar/blob/master/examples/images/preview.gif" style="zoom:67%;" />
+<img src="https://raw.githubusercontent.com/mbhesam/python-telegram-bot-calendar/master/examples/images/preview.gif" style="zoom:60%;" />
 
 # Getting Started
 
@@ -76,7 +76,7 @@ You can create as many calendars as you want. However, in order to handle them p
 ### Date ranges
 
 In the class constructor `min_date` and `max_date` - both are used as min and max values for the calendar. If you add them, the calendar will not show undesired dates. Example:
-<img src="https://github.com/mbhesam/python-telegram-bot-calendar/raw/master/examples/images/2.png?raw=true" alt="3" style="zoom:67%;" />
+<img src="https://raw.githubusercontent.com/mbhesam/python-telegram-bot-calendar/master/examples/images/2.png" alt="3" style="zoom:60%;" />
 
 ### Custom style
 
