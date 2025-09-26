@@ -10,12 +10,12 @@ Very simple inline calendar for your bot.
 
 # Getting Started
 
-This library is tested on Python 3.6 and 3.7.
+This library is tested on Python 3.6 - 3.12.
 
 ### Installation
 
 ```bash
-pip install python-telegram-bot-calendar
+pip install persian-telegram-bot-calendar
 ```
 
 ### Usage
@@ -28,7 +28,7 @@ from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 ...
 @bot.message_handler(commands=['start'])
 def start(m):
-    calendar, step = DetailedTelegramCalendar().build()
+    calendar, step = DetailedTelegramCalendar(locale='fa').build()
     bot.send_message(m.chat.id,
                      f"Select {LSTEP[step]}",
                      reply_markup=calendar)
@@ -36,7 +36,7 @@ def start(m):
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func())
 def cal(c):
-    result, key, step = DetailedTelegramCalendar().process(c.data)
+    result, key, step = DetailedTelegramCalendar(locale='fa').process(c.data)
     if not result and key:
         bot.edit_message_text(f"Select {LSTEP[step]}",
                               c.message.chat.id,
@@ -53,7 +53,7 @@ In start handler the calendar is created. Several arguments can be passed:
 * `calendar_id` - small integer or string, used for calendar identification. It used when you need several different calendars (default - 0)
 * `current_date` - `datetime.date`  object, initial date value (default - today date)
 * `additional_buttons` - 1D list of buttons that will be added to the bottom of the calendar
-* `locale` - either `en`, `ru`, `eo` or `fa` can be added more
+* `locale` - either `en`, `ru`, `eo` or `fa` can be added more. fa is required to work in persian
 * `min_date` and `max_date` - both are used as min and max values for the calendar
 
 As you can see, special function that is provided should be passed to callback query handler. It will automatically work. The function takes only one argument - `calendar_id` that is 0 by default.
