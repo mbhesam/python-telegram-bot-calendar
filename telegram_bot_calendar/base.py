@@ -138,24 +138,9 @@ class TelegramCalendar:
 
     def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
         """Build individual calendar button with debug info"""
-        print(
-            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate{self.use_jdate}")
-
         if (action == NOTHING) or (not date_obj):
-            print(f"   ↳ NOTHING button - text: {text}")
             return {"text": text, "callback_data": NOTHING}
 
-        # # Ensure date_obj is the correct type for the current calendar mode
-        # if self.use_jdate and isinstance(date_obj, date):
-        #     print("   ↳ 🔄 Converting Gregorian to Jalali for button")
-        #     date_obj = jdate.fromgregorian(date=date_obj)
-        # elif not self.use_jdate and isinstance(date_obj, jdate):
-        #     print("   ↳ 🔄 Converting Jalali to Gregorian for button")
-        #     date_obj = date_obj.togregorian()
-
-        print(f"   ↳ Final date_obj: {date_obj} (type: {type(date_obj)})")
-
-        # Build the callback data
         callback_data = "_".join([
             "CALENDAR",
             str(self.calendar_id),
@@ -167,7 +152,6 @@ class TelegramCalendar:
             str(date_obj.day)
         ])
 
-        print(f"   ↳ Callback data: {callback_data}")
         return {"text": text, "callback_data": callback_data}
 
     def _build_keyboard(self, buttons):
@@ -191,26 +175,10 @@ class TelegramCalendar:
 
         if self.max_date and date_obj > self.max_date:
             return False
-        #
-        # # Additional validation for Jalali dates
-        # if self.use_jdate:
-        #     try:
-        #         # Try to create the date to validate it
-        #         jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
-        #         return True
-        #     except:
-        #         return False
-        # elif not self.use_jdate:
-        #     try:
-        #         date(date_obj.year, date_obj.month, date_obj.day)
-        #         return True
-        #     except:
-        #         return False
 
         return True
     def _get_period(self, step, start, count):
         """Override _get_period to handle Jalali dates correctly"""
-        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, use_jdate={self.use_jdate}")
 
         result = []
         for i in range(count):
@@ -233,12 +201,9 @@ class TelegramCalendar:
             # Validate the date
             if self._valid_date(current):
                 result.append(current)
-                print(f"✅ Period {i}: {current} - VALID")
             else:
                 result.append(None)
-                print(f"❌ Period {i}: {current} - INVALID")
 
-        print(f"🔍 _GET_PERIOD RESULT: {result}")
         return result
 
 def rows(buttons, row_size):
