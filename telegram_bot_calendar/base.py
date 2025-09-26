@@ -39,8 +39,8 @@ class TelegramCalendar:
     empty_day_button = " "
     empty_month_button = " "
     empty_year_button = " "
-    size_year = 6
-    size_year_column = 4
+    size_year = 2
+    size_year_column = 2
     size_month = 3
     size_day = 7
     size_additional_buttons = 2
@@ -62,14 +62,12 @@ class TelegramCalendar:
             if current_date is None: current_date = jdatetime.date.today()
             if min_date is None: min_date = jdatetime.date(1300, 1, 1)
             if max_date is None: max_date = jdatetime.date(1499, 12, 29)
-            self.min_date = jdatetime.date.fromgregorian(date=min_date)
-            self.max_date = jdatetime.date.fromgregorian(date=max_date)
         else:
             if current_date is None: current_date = date.today()
             if min_date is None: min_date = date(1800, 1, 1)
             if max_date is None: max_date = date(2999, 12, 31)
-            self.min_date = min_date
-            self.max_date = max_date
+        self.min_date = min_date
+        self.max_date = max_date
 
         self.calendar_id = calendar_id
         self.current_date = current_date

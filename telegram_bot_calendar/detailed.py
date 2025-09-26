@@ -60,7 +60,7 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📋 Years range: {[d.year for d in years if d is not None] if years else 'None'}")
 
         years_buttons = rows(
-            [self._build_button(d.year if d else "", SELECT if d else NOTHING, YEAR, d)
+            [self._build_button(d.year if d else self.empty_year_button, SELECT if d else NOTHING, YEAR, d)
              for d in years],
             self.size_year
         )
