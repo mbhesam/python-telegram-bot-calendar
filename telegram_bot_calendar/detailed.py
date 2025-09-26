@@ -2,7 +2,7 @@ from calendar import monthrange
 from datetime import date
 from dateutil.relativedelta import relativedelta
 import jdatetime
-from jdatetime import date as jdate
+import jdatetime
 
 from telegram_bot_calendar.base import *
 from telegram_bot_calendar.static import MONTHS, DAYS_OF_WEEK
@@ -16,8 +16,8 @@ class DetailedTelegramCalendar(TelegramCalendar):
     first_step = YEAR
 
     def __init__(self, calendar_id=0, current_date=None, additional_buttons=None, locale='en',
-                 min_date=None, max_date=None, telethon=False, use_jdate=False, **kwargs):
-        self.use_jdate = use_jdate  # Rename to avoid conflict with jdate module
+                 min_date=None, max_date=None, telethon=False, **kwargs):
+        self.use_jdate = True if locale == 'fa' else False
         print(f"🔧 INIT: use_jdate={self.use_jdate}, current_date={current_date}, type={type(current_date)}")
 
         # Set a proper default date
@@ -30,14 +30,14 @@ class DetailedTelegramCalendar(TelegramCalendar):
                 print(f"📅 Set default Gregorian date: {current_date}")
 
         super().__init__(calendar_id, current_date, additional_buttons, locale, min_date, max_date, telethon, **kwargs)
-
-        # Double-check that current_date is correct type
-        if self.use_jdate and not isinstance(self.current_date, jdatetime.date):
-            print(f"🔄 CORRECTING DATE TYPE: Converting to Jalali")
-            if isinstance(self.current_date, date):
-                self.current_date = jdatetime.date.fromgregorian(date=self.current_date)
-            else:
-                self.current_date = jdatetime.date.today()
+        #
+        # # Double-check that current_date is correct type
+        # if self.use_jdate and not isinstance(self.current_date, jdatetime.date):
+        #     print(f"🔄 CORRECTING DATE TYPE: Converting to Jalali")
+        #     if isinstance(self.current_date, date):
+        #         self.current_date = jdatetime.date.fromgregorian(date=self.current_date)
+        #     else:
+        #         self.current_date = jdatetime.date.today()
 
         print(f"✅ FINAL INIT: current_date={self.current_date}, type={type(self.current_date)}, use_jdate={self.use_jdate}")
 
@@ -47,16 +47,11 @@ class DetailedTelegramCalendar(TelegramCalendar):
         years_num = self.size_year * self.size_year_column
         half_range = (years_num - 1) // 2
 
-        # Handle Jalali dates properly
-        if self.use_jdate:
-            print("🟢 Using Jalali date arithmetic")
-            start_year = self.current_date.year - half_range
-            print(f"📊 Jalali start year: {start_year}, current year: {self.current_date.year}")
-            start = jdate(start_year, 1, 1)  # Start from Jan 1st of the calculated year
-        else:
-            print("🔵 Using Gregorian date arithmetic")
-            start_year = self.current_date.year - half_range
-            start = date(start_year, 1, 1)
+        start_year = self.current_date.year - half_range
+        print(f"📊 Jalali start year: {start_year}, current year: {self.current_date.year}")
+
+        start = jdatetime.date(start_year, 1, 1) if self.use_jdate else date(start_year, 1, 1)
+
 
         print(f"📊 Start date: {start}")
 
@@ -65,16 +60,12 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"📋 Years range: {[d.year for d in years if d is not None] if years else 'None'}")
 
         years_buttons = rows(
-            [self._build_button(d.year if d else "NULL", SELECT if d else NOTHING, YEAR, d)
+            [self._build_button(d.year if d else "", SELECT if d else NOTHING, YEAR, d)
              for d in years],
             self.size_year
         )
 
-        # Calculate maxd properly
-        if self.use_jdate:
-            maxd = jdate(start.year + years_num - 1, 12, 29)  # Use a safe end date
-        else:
-            maxd = date(start.year + years_num - 1, 12, 31)
+        maxd = jdatetime.date(start.year + years_num - 1, 12, 29) if self.use_jdate else date(start.year + years_num - 1, 12, 31)
 
         print(f"📊 Navigation: mind={start}, maxd={maxd}")
         nav_buttons = self._build_nav_buttons(YEAR, diff=relativedelta(years=years_num),
@@ -153,44 +144,6 @@ class DetailedTelegramCalendar(TelegramCalendar):
         print(f"✅ NAV BUTTONS COMPLETE: step={step}\n")
         return buttons
 
-    def _build_button(self, text, action, step=None, date_obj=None, is_random=False, *args, **kwargs):
-        """Build individual calendar button with debug info"""
-        print(
-            f"🔘 BUILD BUTTON: text='{text}', action='{action}', step='{step}', date_obj='{date_obj}', use_jdate{self.use_jdate}")
-
-        if action == NOTHING:
-            print(f"   ↳ NOTHING button - text: {text}")
-            return {"text": text, "callback_data": NOTHING}
-
-        if not date_obj:
-            print("   ↳ ❌ ERROR: No date_obj provided")
-            return {"text": text, "callback_data": NOTHING}
-
-        # Ensure date_obj is the correct type for the current calendar mode
-        if self.use_jdate and isinstance(date_obj, date):
-            print("   ↳ 🔄 Converting Gregorian to Jalali for button")
-            date_obj = jdate.fromgregorian(date=date_obj)
-        elif not self.use_jdate and isinstance(date_obj, jdate):
-            print("   ↳ 🔄 Converting Jalali to Gregorian for button")
-            date_obj = date_obj.togregorian()
-
-        print(f"   ↳ Final date_obj: {date_obj} (type: {type(date_obj)})")
-
-        # Build the callback data
-        callback_data = "_".join([
-            "CALENDAR",
-            str(self.calendar_id),
-            str(int(self.use_jdate)),
-            action,
-            step if step else "",
-            str(date_obj.year),
-            str(date_obj.month),
-            str(date_obj.day)
-        ])
-
-        print(f"   ↳ Callback data: {callback_data}")
-        return {"text": text, "callback_data": callback_data}
-
     def _process(self, call_data):
         print(f"\n🎯 PROCESS CALLBACK: call_data='{call_data}', use_jdate{self.use_jdate}")
         print(f"📅 BEFORE PROCESS: current_date={self.current_date}, type={type(self.current_date)}")
@@ -200,10 +153,10 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         # Ensure we have enough parameters
         expected_params = ["start", "calendar_id", "use_jdate", "action", "step", "year", "month", "day"]
-        if len(params) < len(expected_params):
-            print(f"❌ WARNING: Not enough parameters. Expected {len(expected_params)}, got {len(params)}")
-            # Pad with empty strings
-            params.extend([""] * (len(expected_params) - len(params)))
+        # if len(params) < len(expected_params):
+        #     print(f"❌ WARNING: Not enough parameters. Expected {len(expected_params)}, got {len(params)}")
+        #     # Pad with empty strings
+        #     params.extend([""] * (len(expected_params) - len(params)))
 
         params = dict(zip(expected_params[:len(params)], params))
         print(f"📋 Parsed params: {params}")
@@ -225,16 +178,15 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         print(f"📊 Processing: step={step}, year={year}, month={month}, day={day}")
 
-        # CRITICAL: Preserve Jalali setting when processing callback data
         if self.use_jdate:
             print("🟢 Creating Jalali date from callback data")
             try:
-                self.current_date = jdate(year, month, day)
+                self.current_date = jdatetime.date(year, month, day)
                 print(f"✅ Jalali date created: {self.current_date}")
             except Exception as e:
                 print(f"❌ ERROR creating Jalali date: {e}")
                 # Fallback to current date
-                self.current_date = jdate.today()
+                self.current_date = jdatetime.date.today()
         else:
             print("🔵 Creating Gregorian date from callback data")
             try:
@@ -353,71 +305,3 @@ class DetailedTelegramCalendar(TelegramCalendar):
 
         self._keyboard = self._build_keyboard(days_of_week_buttons + days_buttons + nav_buttons)
         print(f"✅ BUILD DAYS COMPLETE\n")
-
-    def _get_period(self, step, start, count):
-        """Override _get_period to handle Jalali dates correctly"""
-        print(f"🔍 _GET_PERIOD CALLED: step={step}, start={start}, count={count}, use_jdate={self.use_jdate}")
-
-        result = []
-        for i in range(count):
-            if step == YEAR:
-                if self.use_jdate:
-                    current = jdatetime.date(start.year + i, 1, 1)
-                else:
-                    current = date(start.year + i, 1, 1)
-            elif step == MONTH:
-                if self.use_jdate:
-                    # For Jalali months
-                    year = start.year + (start.month + i - 1) // 12
-                    month = (start.month + i - 1) % 12 + 1
-                    current = jdatetime.date(year, month, 1)
-                else:
-                    # For Gregorian months
-                    year = start.year + (start.month + i - 1) // 12
-                    month = (start.month + i - 1) % 12 + 1
-                    current = date(year, month, 1)
-            else:  # DAY
-                if self.use_jdate:
-                    cur_tmp = start.togregorian() + relativedelta(days=i)
-                    current = jdatetime.date.fromgregorian(date=cur_tmp)
-                else:
-                    current = start + relativedelta(days=i)
-
-            # Validate the date
-            if self._valid_date(current):
-                result.append(current)
-                print(f"✅ Period {i}: {current} - VALID")
-            else:
-                result.append(None)
-                print(f"❌ Period {i}: {current} - INVALID")
-
-        print(f"🔍 _GET_PERIOD RESULT: {result}")
-        return result
-
-    def _valid_date(self, date_obj):
-        """Check if date is valid considering min_date and max_date constraints"""
-        if date_obj is None:
-            return False
-
-        if self.min_date and date_obj < self.min_date:
-            return False
-
-        if self.max_date and date_obj > self.max_date:
-            return False
-
-        # Additional validation for Jalali dates
-        if self.use_jdate and isinstance(date_obj, jdatetime.date):
-            try:
-                # Try to create the date to validate it
-                jdatetime.date(date_obj.year, date_obj.month, date_obj.day)
-                return True
-            except:
-                return False
-        elif not self.use_jdate and isinstance(date_obj, date):
-            try:
-                date(date_obj.year, date_obj.month, date_obj.day)
-                return True
-            except:
-                return False
-
-        return True
